@@ -11,6 +11,37 @@ framework, not the content.
 - **Try it instantly:** a reference backend serving Creative-Commons Blender
   movies is included (`resources/lib/mock_server.py`).
 
+## Install in Kodi (as a repository source)
+
+This repo is a self-contained Kodi repository, so Kodi can install and
+auto-update the add-on. In Kodi:
+
+1. **Settings → System → Add-ons** and enable **Unknown sources**.
+2. **Settings → File manager → Add source** and enter this URL:
+
+   ```
+   https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/
+   ```
+
+   Give it a name such as `Cumnation` and select **OK**.
+3. **Settings → Add-ons → Install from zip file** → pick the source you just
+   added → `repository.cumnation` → `repository.cumnation-1.0.0.zip`.
+4. **Install from repository → Cumnation Repository → Video add-ons →
+   Cumnation → Install.**
+5. Open **Cumnation → Settings** and set the **Base API URL** to your content
+   source (see the [add-on README](plugin.video.cumnation/README.md)).
+
+From then on Kodi keeps the add-on updated from this repository automatically.
+
+### Rebuilding the repository
+
+The `repo/` tree is generated — do not edit it by hand. After changing an
+add-on (or bumping its `version` in `addon.xml`), regenerate it:
+
+```bash
+python3 tools/build_repo.py
+```
+
 ## Quick start
 
 ```bash

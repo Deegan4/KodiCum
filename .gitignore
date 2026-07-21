@@ -6,6 +6,8 @@ __pycache__/
 
 # Kodi build artifacts
 *.zip
+# ...but the generated repository zips must be committed so Kodi can fetch them
+!repo/**/*.zip
 
 # OS / editor
 .DS_Store
