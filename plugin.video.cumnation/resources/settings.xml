@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings version="1">
+    <section id="plugin.video.cumnation">
+        <category id="source" label="32100">
+            <group id="1">
+                <setting id="base_url" type="string" label="32101" help="32102">
+                    <level>0</level>
+                    <default></default>
+                    <control type="edit" format="string">
+                        <heading>32101</heading>
+                    </control>
+                </setting>
+                <setting id="user_agent" type="string" label="32103" help="32104">
+                    <level>1</level>
+                    <default>Mozilla/5.0 (Kodi) Cumnation/1.0</default>
+                    <control type="edit" format="string">
+                        <heading>32103</heading>
+                    </control>
+                </setting>
+                <setting id="page_size" type="integer" label="32105" help="32106">
+                    <level>1</level>
+                    <default>30</default>
+                    <constraints>
+                        <minimum>10</minimum>
+                        <step>10</step>
+                        <maximum>100</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+            </group>
+        </category>
+        <category id="playback" label="32110">
+            <group id="1">
+                <setting id="resume_playback" type="boolean" label="32111" help="32112">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="track_history" type="boolean" label="32113" help="32114">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="history_size" type="integer" label="32115" help="32116">
+                    <level>1</level>
+                    <default>50</default>
+                    <constraints>
+                        <minimum>10</minimum>
+                        <step>10</step>
+                        <maximum>200</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+            </group>
+        </category>
+        <category id="maintenance" label="32120">
+            <group id="1">
+                <setting id="clear_search_history" type="action" label="32121">
+                    <level>0</level>
+                    <data>RunPlugin(plugin://plugin.video.cumnation/?action=clear_search)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+                <setting id="clear_watch_history" type="action" label="32122">
+                    <level>0</level>
+                    <data>RunPlugin(plugin://plugin.video.cumnation/?action=clear_watched)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+                <setting id="clear_resume_points" type="action" label="32123">
+                    <level>0</level>
+                    <data>RunPlugin(plugin://plugin.video.cumnation/?action=clear_resume)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+            </group>
+        </category>
+    </section>
+</settings>

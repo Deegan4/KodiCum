@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Byte-compile add-on
+        run: python -m compileall plugin.video.cumnation
+      - name: Validate XML
+        run: |
+          python -c "import xml.dom.minidom as m; [m.parse(f) for f in ['plugin.video.cumnation/addon.xml','plugin.video.cumnation/resources/settings.xml']]; print('XML OK')"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests

@@ -1,0 +1,10 @@
+v1.0.0 (2026-07-21)
+- Initial release
+- Category browsing with pagination
+- Search with persistent search history
+- Favorites (add / remove / clear) with context menus
+- Watch history tracking
+- Resume points for partially watched items
+- Configurable JSON content source, user-agent and page size
+- Maintenance actions to clear search/watch history and resume points
+- Reference mock backend and off-device unit test suite
