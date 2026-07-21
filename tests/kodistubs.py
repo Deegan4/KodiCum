@@ -81,6 +81,7 @@ def install():
     xbmc.LOGERROR = 4
     xbmc.log = lambda *a, **k: None
     xbmc.executebuiltin = lambda *a, **k: None
+    xbmc.getInfoLabel = lambda label: '20.2 (20.2.0) Git:20230000'
     xbmc.Player = object
     xbmc.Monitor = object
 

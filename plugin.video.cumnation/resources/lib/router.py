@@ -74,7 +74,7 @@ class Router(object):
         info = {'title': label}
         if plot:
             info['plot'] = plot
-        item.setInfo('video', info)
+        kodiutils.set_video_info(item, info)
         if context:
             item.addContextMenuItems(context)
         xbmcplugin.addDirectoryItem(self.handle, url, item, isFolder=True)
@@ -101,7 +101,7 @@ class Router(object):
                 pass
         if video.tags:
             info['tag'] = video.tags
-        item.setInfo('video', info)
+        kodiutils.set_video_info(item, info)
 
         item.setProperty('IsPlayable', 'true')
 
@@ -284,7 +284,7 @@ class Router(object):
         info = {'mediatype': 'video', 'title': video.title or S(32029)}
         if video.plot:
             info['plot'] = video.plot
-        play_item.setInfo('video', info)
+        kodiutils.set_video_info(play_item, info)
 
         if resume.enabled():
             pos = resume.get(video_id)

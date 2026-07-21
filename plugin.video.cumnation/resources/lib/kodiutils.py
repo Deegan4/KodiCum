@@ -85,3 +85,47 @@ def open_settings():
 
 def refresh_container():
     xbmc.executebuiltin('Container.Refresh')
+
+
+def kodi_major():
+    """Return Kodi's major version number (e.g. 19, 20, 21)."""
+    try:
+        return int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
+    except (ValueError, IndexError):
+        return 20
+
+
+# Cache the capability check: the InfoTag setters exist from Kodi 20 (Nexus).
+_USE_INFOTAG = kodi_major() >= 20
+
+
+def set_video_info(list_item, info):
+    """Populate a ListItem's video metadata in a version-safe way.
+
+    Kodi 20+ deprecates ``ListItem.setInfo`` in favour of the InfoTagVideo
+    setters (and will remove it in a future release). We use the modern API
+    when available and fall back to ``setInfo`` on Kodi 19 (Matrix), where the
+    setters do not exist.
+
+    ``info`` uses the same keys as ``setInfo('video', ...)``: ``mediatype``,
+    ``title``, ``plot``, ``duration``, ``premiered``, ``rating``, ``tag``.
+    """
+    if not _USE_INFOTAG:
+        list_item.setInfo('video', info)
+        return
+
+    tag = list_item.getVideoInfoTag()
+    if 'mediatype' in info:
+        tag.setMediaType(info['mediatype'])
+    if 'title' in info:
+        tag.setTitle(info['title'])
+    if 'plot' in info:
+        tag.setPlot(info['plot'])
+    if info.get('duration') is not None:
+        tag.setDuration(int(info['duration']))
+    if info.get('premiered'):
+        tag.setPremiered(info['premiered'])
+    if info.get('rating') is not None:
+        tag.setRating(float(info['rating']))
+    if info.get('tag'):
+        tag.setTags(list(info['tag']))

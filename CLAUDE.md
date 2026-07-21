@@ -73,10 +73,12 @@ before the add-on is imported.
 
 ## Critical conventions
 
-- **Kodi 19 compatibility:** use `ListItem.setInfo('video', {...})`, NOT the
-  `getVideoInfoTag().setX()` setters — those only exist in Kodi 20+ and raise
-  `AttributeError` on Matrix, which `addon.xml` declares support for
-  (`xbmc.python 3.0.0`).
+- **Video metadata is version-safe via `kodiutils.set_video_info()`.** Never
+  call `ListItem.setInfo` or the `getVideoInfoTag().setX()` setters directly:
+  `setInfo` is deprecated on Kodi 20+ (and will be removed), while the setters
+  don't exist on Kodi 19. The helper dispatches on `kodiutils.kodi_major()` —
+  InfoTag setters on 20+ (Nexus/Omega), `setInfo` fallback on 19 (Matrix).
+  `addon.xml` declares `xbmc.python 3.0.0`, which covers Kodi 19–21.
 - **The `repo/` tree is generated — never hand-edit it.** It is produced by
   `tools/build_repo.py` from the two add-on folders. `.gitignore` ignores
   `*.zip` but force-includes `repo/**/*.zip`; those zips MUST be committed

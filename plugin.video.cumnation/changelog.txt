@@ -1,3 +1,9 @@
+v1.0.1 (2026-07-21)
+- Latest-Kodi compatibility: video metadata now uses the InfoTagVideo API on
+  Kodi 20+ (Nexus/Omega), falling back to setInfo on Kodi 19 (Matrix)
+- Removed the unused beautifulsoup4 dependency (only requests is used), so the
+  add-on installs cleanly on current Kodi
+
 v1.0.0 (2026-07-21)
 - Initial release
 - Category browsing with pagination
