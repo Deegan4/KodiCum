@@ -1,3 +1,13 @@
+v1.0.2 (2026-07-21)
+- Adaptive streaming: HLS/DASH/SmoothStreaming via InputStream Adapter, with
+  optional Widevine/PlayReady DRM (license_type/license_key from /resolve)
+- Quality selection: choose Ask / Best / a preferred resolution when the
+  source returns multiple streams (new "streams" resolve shape)
+- Response caching with a configurable TTL for categories and listings
+- Automatic retry-with-backoff on transient network errors
+- Skin widget endpoints (?action=widget&type=favorites|history|category)
+- "Test connection" settings button and a "Clear content cache" action
+
 v1.0.1 (2026-07-21)
 - Latest-Kodi compatibility: video metadata now uses the InfoTagVideo API on
   Kodi 20+ (Nexus/Omega), falling back to setInfo on Kodi 19 (Matrix)

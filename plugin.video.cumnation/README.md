@@ -16,7 +16,11 @@ any single website and ships nothing but the framework.
 | **Favorites** | Add/remove from the context menu; a dedicated Favorites folder; clear-all. |
 | **Watch history** | Recently watched items are remembered (toggleable, size-capped). |
 | **Resume** | Partially watched items resume where you left off; finished items reset automatically. |
-| **Settings** | Base API URL, user-agent, page size, resume/history toggles, and maintenance actions. |
+| **Adaptive streaming** | Plays HLS/DASH/SmoothStreaming via InputStream Adapter, with optional Widevine/PlayReady DRM. |
+| **Quality selection** | When the source returns several renditions: *Ask*, *Best available*, or a preferred resolution. |
+| **Caching & retries** | TTL cache for categories/listings and automatic retry-with-backoff on transient errors. |
+| **Skin widgets** | Favorites / history / a category can be bound as home-screen widgets. |
+| **Settings** | Base API URL, user-agent, page size, quality, cache/retry, resume/history toggles, connection test and maintenance actions. |
 
 ## Installation
 
@@ -41,14 +45,39 @@ GET {base}/search?q={query}&page={n}&limit={size}
     -> {"videos": [<video>...], "page": n, "has_next": bool}
 
 GET {base}/resolve?id={video_id}[&url={page_url}]
+    # single progressive stream:
     -> {"stream": "https://.../file.mp4", "headers": {...}}
+    # or multiple / adaptive / DRM-protected streams:
+    -> {"streams": [<stream>, ...]}
 
-<video> = {"id","title","url","thumb","plot","duration",
-           "date","rating","tags"}
+<video>  = {"id","title","url","thumb","plot","duration",
+            "date","rating","tags"}
+
+<stream> = {"url",                       # required
+            "quality",                   # vertical resolution, e.g. 1080
+            "label",                     # optional display label
+            "headers",                   # optional request headers
+            "manifest_type",             # "hls" | "mpd" | "ism" -> InputStream Adapter
+            "mime_type",                 # optional, e.g. "application/dash+xml"
+            "license_type",              # optional DRM, e.g. "com.widevine.alpha"
+            "license_key"}               # optional ISA license key string
 ```
 
-`headers` returned from `/resolve` are appended to the stream URL as Kodi
-request headers (e.g. for `Referer`/`User-Agent`-gated CDNs).
+Both `/resolve` shapes are supported; a plain `{"stream": ...}` still works.
+`headers` are applied as Kodi request headers (progressive) or ISA
+`stream_headers` (adaptive) — e.g. for `Referer`/`User-Agent`-gated CDNs.
+When several streams are returned, the **Preferred quality** setting decides
+which plays (or prompts).
+
+### Skin widgets
+
+Bind these plugin paths as widgets in a skin:
+
+```
+plugin://plugin.video.cumnation/?action=widget&type=favorites
+plugin://plugin.video.cumnation/?action=widget&type=history
+plugin://plugin.video.cumnation/?action=widget&type=category&category=<id>
+```
 
 ## Try it without a backend
 

@@ -19,8 +19,9 @@ from . import kodiutils
 from . import favorites
 from . import history
 from . import resume
+from . import cache
 from .content import ContentSource, ContentError
-from .models import Video
+from .models import Video, select_stream
 from .player import ResumePlayer
 
 S = kodiutils.get_string
@@ -264,23 +265,64 @@ class Router(object):
         kodiutils.refresh_container()
 
     # -- actions: playback ------------------------------------------------
+    def _pick_stream(self, streams):
+        """Apply the quality preference; prompt if set to Ask and >1 stream."""
+        pref = kodiutils.get_setting_int('quality', 0)
+        # Setting values: 0=Ask, 1=Best, else a resolution (e.g. 1080/720/480).
+        if pref == 0 and len(streams) > 1:
+            labels = [s.display_label for s in streams]
+            choice = kodiutils.select(S(32041), labels)
+            return streams[choice] if choice >= 0 else None
+        target = 0 if pref <= 1 else pref
+        return select_stream(streams, target)
+
+    def _apply_stream(self, play_item, stream):
+        """Configure a ListItem for a stream, wiring InputStream Adapter/DRM."""
+        path = stream.url
+        if stream.is_adaptive:
+            play_item.setPath(path)
+            play_item.setProperty('inputstream', 'inputstream.adapter')
+            play_item.setProperty('inputstream.adapter.manifest_type',
+                                  stream.manifest_type)
+            if stream.headers:
+                hdr = '&'.join('{0}={1}'.format(k, v)
+                               for k, v in stream.headers.items())
+                play_item.setProperty('inputstream.adapter.stream_headers', hdr)
+            if stream.license_type:
+                play_item.setProperty('inputstream.adapter.license_type',
+                                      stream.license_type)
+            if stream.license_key:
+                play_item.setProperty('inputstream.adapter.license_key',
+                                      stream.license_key)
+            if stream.mime_type:
+                play_item.setMimeType(stream.mime_type)
+                play_item.setContentLookup(False)
+        else:
+            if stream.headers:
+                path = path + '|' + '&'.join(
+                    '{0}={1}'.format(k, v) for k, v in stream.headers.items())
+            play_item.setPath(path)
+
     def action_play(self):
         video_id = self.args.get('video_id', '')
         video_url = self.args.get('url', '')
         video = Video.from_dict(json.loads(self.args.get('data', '{}')))
 
         try:
-            stream, headers = self.source.resolve(video_id, video_url)
+            streams = self.source.resolve(video_id, video_url)
         except ContentError as exc:
             kodiutils.notify(str(exc), icon=xbmcgui.NOTIFICATION_ERROR)
             xbmcplugin.setResolvedUrl(self.handle, False, xbmcgui.ListItem())
             return
 
-        if headers:
-            sep = '|' + '&'.join('{0}={1}'.format(k, v) for k, v in headers.items())
-            stream = stream + sep
+        stream = self._pick_stream(streams)
+        if stream is None:                      # user cancelled the quality dialog
+            xbmcplugin.setResolvedUrl(self.handle, False, xbmcgui.ListItem())
+            return
 
-        play_item = xbmcgui.ListItem(path=stream)
+        play_item = xbmcgui.ListItem(path=stream.url)
+        self._apply_stream(play_item, stream)
+
         info = {'mediatype': 'video', 'title': video.title or S(32029)}
         if video.plot:
             info['plot'] = video.plot
@@ -297,6 +339,41 @@ class Router(object):
         # Track the resume point for next time.
         if resume.enabled() and video_id:
             ResumePlayer(video_id).run()
+
+    # -- actions: maintenance / diagnostics -------------------------------
+    def action_test_connection(self):
+        try:
+            cats = self.source.categories()
+        except ContentError as exc:
+            kodiutils.ok_dialog('{0}\n\n{1}'.format(S(32043), str(exc)))
+            return
+        kodiutils.ok_dialog(S(32044).format(len(cats)))
+
+    def action_clear_cache(self):
+        cache.clear()
+        kodiutils.notify(S(32046))
+
+    # -- actions: skin widgets --------------------------------------------
+    def action_widget(self):
+        """Flat, management-free listings for skins to bind as widgets.
+
+        Point a skin widget at, e.g.:
+            plugin://plugin.video.cumnation/?action=widget&type=favorites
+            plugin://plugin.video.cumnation/?action=widget&type=history
+            plugin://plugin.video.cumnation/?action=widget&type=category&category=<id>
+        """
+        wtype = self.args.get('type', '')
+        if wtype == 'favorites':
+            videos = favorites.all_favorites()
+        elif wtype == 'history':
+            videos = history.watched()
+        elif wtype == 'category':
+            videos = self.source.list_videos(self.args.get('category', ''), 1).items
+        else:
+            videos = []
+        for video in videos:
+            self._add_video(video)
+        self._end()
 
     def action_open_settings(self):
         kodiutils.open_settings()

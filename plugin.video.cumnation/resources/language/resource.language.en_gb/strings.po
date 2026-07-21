@@ -119,6 +119,23 @@ msgctxt "#32036"
 msgid "Clear watch history"
 msgstr ""
 
+# --- Playback / diagnostics --------------------------------------------
+msgctxt "#32041"
+msgid "Select quality"
+msgstr ""
+
+msgctxt "#32043"
+msgid "Could not reach the content source:"
+msgstr ""
+
+msgctxt "#32044"
+msgid "Connected. {0} categories available."
+msgstr ""
+
+msgctxt "#32046"
+msgid "Cache cleared"
+msgstr ""
+
 # --- Errors ------------------------------------------------------------
 msgctxt "#32050"
 msgid "Configure a content source in add-on settings first"
@@ -197,4 +214,50 @@ msgstr ""
 
 msgctxt "#32123"
 msgid "Clear all resume points"
+msgstr ""
+
+msgctxt "#32124"
+msgid "Clear content cache"
+msgstr ""
+
+# --- Settings: network & cache -----------------------------------------
+msgctxt "#32130"
+msgid "Network & Cache"
+msgstr ""
+
+msgctxt "#32131"
+msgid "Cache lifetime (minutes)"
+msgstr ""
+
+msgctxt "#32132"
+msgid "How long to reuse category/listing responses. 0 disables caching."
+msgstr ""
+
+msgctxt "#32133"
+msgid "Network retries"
+msgstr ""
+
+msgctxt "#32134"
+msgid "Retry failed requests this many times, with increasing backoff."
+msgstr ""
+
+# --- Settings: quality -------------------------------------------------
+msgctxt "#32135"
+msgid "Preferred quality"
+msgstr ""
+
+msgctxt "#32136"
+msgid "Which stream to play when the source offers several."
+msgstr ""
+
+msgctxt "#32137"
+msgid "Always ask"
+msgstr ""
+
+msgctxt "#32138"
+msgid "Best available"
+msgstr ""
+
+msgctxt "#32140"
+msgid "Test connection"
 msgstr ""

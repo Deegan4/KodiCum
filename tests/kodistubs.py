@@ -20,6 +20,9 @@ class _Addon(object):
             'resume_playback': 'true',
             'track_history': 'true',
             'history_size': '50',
+            'quality': '0',
+            'cache_ttl': '10',
+            'network_retries': '2',
         }
         self._profile = tempfile.mkdtemp(prefix='cumnation-test-')
 

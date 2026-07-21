@@ -17,8 +17,9 @@ kodistubs.install()
 ADDON_ROOT = os.path.join(os.path.dirname(__file__), '..', 'plugin.video.cumnation')
 sys.path.insert(0, os.path.abspath(ADDON_ROOT))
 
-from resources.lib import favorites, history, resume, kodiutils  # noqa: E402
-from resources.lib.models import Video, Category, Page  # noqa: E402
+from resources.lib import favorites, history, resume, kodiutils, cache  # noqa: E402
+from resources.lib.models import (  # noqa: E402
+    Video, Category, Page, Stream, select_stream)
 
 
 class _FakeInfoTag(object):
@@ -167,6 +168,57 @@ class VideoInfoCompatTests(unittest.TestCase):
             self.assertEqual(item.tag.calls, {})         # InfoTag NOT touched
         finally:
             kodiutils._USE_INFOTAG = original
+
+
+class StreamTests(unittest.TestCase):
+    def test_from_dict_accepts_url_or_stream_key(self):
+        self.assertEqual(Stream.from_dict({'url': 'a'}).url, 'a')
+        self.assertEqual(Stream.from_dict({'stream': 'b'}).url, 'b')
+
+    def test_adaptive_flag_and_label(self):
+        s = Stream(url='u', manifest_type='hls', quality=720)
+        self.assertTrue(s.is_adaptive)
+        self.assertEqual(s.display_label, '720p')
+        self.assertEqual(Stream(url='u').display_label, 'Default')
+
+
+class SelectStreamTests(unittest.TestCase):
+    def _streams(self):
+        return [Stream('a', quality=1080), Stream('b', quality=720),
+                Stream('c', quality=480)]
+
+    def test_single_stream_returned_directly(self):
+        one = [Stream('x', quality=480)]
+        self.assertIs(select_stream(one, 1080), one[0])
+
+    def test_zero_preference_picks_highest(self):
+        self.assertEqual(select_stream(self._streams(), 0).quality, 1080)
+
+    def test_target_picks_at_or_below(self):
+        self.assertEqual(select_stream(self._streams(), 720).quality, 720)
+        self.assertEqual(select_stream(self._streams(), 600).quality, 480)
+
+    def test_target_below_all_falls_back_to_highest(self):
+        self.assertEqual(select_stream(self._streams(), 240).quality, 1080)
+
+
+class CacheTests(unittest.TestCase):
+    def setUp(self):
+        cache.clear()
+        kodiutils.set_setting('cache_ttl', '10')   # 10 min
+
+    def test_hit_within_ttl(self):
+        cache.set('k', {'v': 1}, now=1000)
+        self.assertEqual(cache.get('k', now=1200), {'v': 1})
+
+    def test_miss_after_ttl(self):
+        cache.set('k', {'v': 1}, now=1000)
+        self.assertIsNone(cache.get('k', now=1000 + 601))
+
+    def test_disabled_when_ttl_zero(self):
+        cache.set('k', {'v': 1}, now=1000)
+        kodiutils.set_setting('cache_ttl', '0')
+        self.assertIsNone(cache.get('k', now=1000))
 
 
 if __name__ == '__main__':

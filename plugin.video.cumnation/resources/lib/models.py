@@ -82,6 +82,68 @@ class Video(object):
         )
 
 
+class Stream(object):
+    """A single playable rendition of a video.
+
+    A source may return several (e.g. 1080p/720p/480p, or an adaptive
+    manifest). ``manifest_type`` (hls/mpd/ism) signals adaptive streaming via
+    InputStream Adapter; ``license_type``/``license_key`` carry optional DRM.
+    """
+
+    def __init__(self, url, quality=0, label=None, headers=None,
+                 manifest_type=None, mime_type=None,
+                 license_type=None, license_key=None):
+        self.url = url
+        self.quality = int(quality or 0)     # vertical resolution, e.g. 1080
+        self.label = label
+        self.headers = headers or {}
+        self.manifest_type = manifest_type   # 'hls' | 'mpd' | 'ism' | None
+        self.mime_type = mime_type
+        self.license_type = license_type     # e.g. 'com.widevine.alpha'
+        self.license_key = license_key
+
+    @property
+    def is_adaptive(self):
+        return bool(self.manifest_type)
+
+    @property
+    def display_label(self):
+        if self.label:
+            return self.label
+        if self.quality:
+            return '{0}p'.format(self.quality)
+        return 'Default'
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            url=data.get('url') or data.get('stream'),
+            quality=data.get('quality', 0),
+            label=data.get('label'),
+            headers=data.get('headers') or {},
+            manifest_type=data.get('manifest_type'),
+            mime_type=data.get('mime_type'),
+            license_type=data.get('license_type'),
+            license_key=data.get('license_key'),
+        )
+
+
+def select_stream(streams, preference):
+    """Choose a stream given a preference.
+
+    ``preference`` is 0 for "highest quality", or a target vertical
+    resolution (e.g. 720). Returns the best stream at or below the target,
+    or the highest available if none qualify. ``streams`` must be non-empty.
+    """
+    if len(streams) == 1:
+        return streams[0]
+    ordered = sorted(streams, key=lambda s: s.quality, reverse=True)
+    if not preference:
+        return ordered[0]
+    at_or_below = [s for s in ordered if s.quality and s.quality <= preference]
+    return at_or_below[0] if at_or_below else ordered[0]
+
+
 class Page(object):
     """A page of results plus a flag telling the UI whether more exist."""
 

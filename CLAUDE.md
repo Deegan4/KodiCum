@@ -49,10 +49,20 @@ there is no long-lived process.
 (`ContentSource`) is the only thing that talks to the outside world. It expects
 four endpoints relative to the user-configured Base API URL:
 `/categories`, `/list`, `/search`, `/resolve`. The router never knows where
-data comes from — it only handles `Category`/`Video`/`Page` objects from
-`models.py`. To support a new backend you implement that contract, not add-on
-code. `mock_server.py` is a reference implementation of it (and is NOT loaded
-by Kodi).
+data comes from — it only handles `Category`/`Video`/`Page`/`Stream` objects
+from `models.py`. To support a new backend you implement that contract, not
+add-on code. `mock_server.py` is a reference implementation of it (and is NOT
+loaded by Kodi). `_get(..., cacheable=True)` layers the TTL cache (`cache.py`)
+over categories/listings, and `_request()` retries transient failures with
+exponential backoff; both are settings-driven.
+
+**`/resolve` returns a list of `Stream`s; playback picks one.** A stream may be
+progressive or adaptive (`manifest_type` hls/mpd/ism). `router._pick_stream`
+applies the quality setting (Ask/Best/target resolution via
+`models.select_stream`), and `router._apply_stream` wires progressive headers
+onto the URL or, for adaptive streams, sets the `inputstream.adapter.*`
+properties (manifest type, stream headers, optional Widevine/PlayReady DRM).
+The single-stream `{"stream": ...}` shape is still accepted for older backends.
 
 **Persistence is JSON files in the add-on profile.** `favorites.py`,
 `history.py` (search + watch) and `resume.py` all go through
@@ -96,7 +106,8 @@ before the add-on is imported.
 ## Layout
 
 - `plugin.video.cumnation/` — the add-on (entry `addon.py`, logic in
-  `resources/lib/`, UI in `resources/settings.xml` + language files)
+  `resources/lib/`, UI in `resources/settings.xml` + language files). Skins can
+  bind widget listings via `?action=widget&type=favorites|history|category`.
 - `repository.cumnation/` — the Kodi repository add-on (pointers only)
 - `repo/` — generated distributable repository (zips + `addons.xml` + md5)
 - `tools/build_repo.py` — packages the two add-ons into `repo/`

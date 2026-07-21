@@ -89,7 +89,19 @@ class Handler(BaseHTTPRequestHandler):
             self._send({'videos': hits, 'page': 1, 'has_next': False})
         elif path == 'resolve':
             video = _find(query.get('id', ''))
-            self._send({'stream': video['url'] if video else '', 'headers': {}})
+            if not video:
+                self._send({'streams': []})
+            elif video['id'] == 'bbb':
+                # Demonstrate the multi-quality shape + the quality picker.
+                self._send({'streams': [
+                    {'url': 'https://download.blender.org/demo/movies/BBB/'
+                            'bbb_sunflower_1080p_30fps_normal.mp4',
+                     'quality': 1080, 'label': '1080p'},
+                    {'url': _STREAM, 'quality': 240, 'label': '240p'},
+                ]})
+            else:
+                # Single progressive stream (older/simple shape still works).
+                self._send({'stream': video['url'], 'headers': {}})
         else:
             self._send({'error': 'not found'})
 
