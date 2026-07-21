@@ -20,10 +20,19 @@ auto-update the add-on. In Kodi:
 2. **Settings → File manager → Add source** and enter this URL:
 
    ```
-   https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/
+   https://cdn.jsdelivr.net/gh/Deegan4/KodiCum@main/repo/zips/
    ```
 
    Give it a name such as `Cumnation` and select **OK**.
+
+   > `raw.githubusercontent.com` cannot be browsed as a folder in Kodi's file
+   > manager (it has no directory listing, so "Add source" fails with
+   > "Unable to connect" / "Couldn't retrieve directory information"). The
+   > jsDelivr GitHub CDN mirrors the same files but serves a real browsable
+   > directory listing, so use it for this one-time bootstrap step. Once the
+   > repository add-on itself is installed, Kodi's auto-update engine fetches
+   > known filenames directly and works fine against `raw.githubusercontent.com`
+   > (that's what `repository.cumnation/addon.xml` still points at).
 3. **Settings → Add-ons → Install from zip file** → pick the source you just
    added → `repository.cumnation` → `repository.cumnation-1.0.0.zip`.
 4. **Install from repository → Cumnation Repository → Video add-ons →

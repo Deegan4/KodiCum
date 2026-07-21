@@ -73,6 +73,18 @@ source the user configures, and bundles no content or scrapers.
 `resources/lib/mock_server.py` is a runnable reference backend (CC Blender
 movies; demonstrates the multi-quality `/resolve` shape).
 
+## Known gotcha
+
+- **`raw.githubusercontent.com` can't be browsed as a Kodi file source** — it
+  404s on any directory path (no listing), so Kodi's "Add source" /
+  "Install from zip file" flow fails with "Unable to connect". Fixed by
+  pointing the *bootstrap* "Add source" step in `README.md` at
+  `https://cdn.jsdelivr.net/gh/Deegan4/KodiCum@main/repo/zips/` (jsDelivr's
+  GitHub CDN, which does serve a real directory listing). The
+  `repository.cumnation/addon.xml` `<datadir>`/`<info>`/`<checksum>` stay on
+  `raw.githubusercontent.com` — Kodi's auto-update engine fetches known
+  filenames directly there and never needs to browse it.
+
 ## Open threads / not yet done
 
 - **Parental PIN lock** — proposed, user did NOT select it. Available on request.
