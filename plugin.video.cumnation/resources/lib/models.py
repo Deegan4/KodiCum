@@ -5,6 +5,8 @@ Keeping these as explicit classes (rather than raw dicts) gives the router a
 stable contract regardless of which content source produced them.
 """
 
+AVTRANSPORT_V1 = 'urn:schemas-upnp-org:service:AVTransport:1'
+
 
 class Category(object):
     """A browsable node: a genre, tag, channel or sub-listing."""
@@ -142,6 +144,81 @@ def select_stream(streams, preference):
         return ordered[0]
     at_or_below = [s for s in ordered if s.quality and s.quality <= preference]
     return at_or_below[0] if at_or_below else ordered[0]
+
+
+class Renderer(object):
+    """A DLNA/UPnP MediaRenderer found on the local network.
+
+    Typically a smart TV, but also AV receivers, streaming sticks and soft
+    renderers. ``control_url`` is the absolute URL of the device's AVTransport
+    service -- the endpoint a stream would be pushed to.
+    """
+
+    def __init__(self, udn, name, location=None, address=None,
+                 manufacturer=None, model=None, model_number=None,
+                 device_type=None, control_url=None, service_type=None,
+                 icon=None):
+        self.udn = udn                    # stable unique id, e.g. 'uuid:...'
+        self.name = name                  # friendlyName, e.g. 'Living Room TV'
+        self.location = location          # device description URL
+        self.address = address            # IP address on the LAN
+        self.manufacturer = manufacturer
+        self.model = model
+        self.model_number = model_number
+        self.device_type = device_type
+        self.control_url = control_url    # AVTransport control endpoint
+        # Exact AVTransport service type, e.g. '...:service:AVTransport:1'.
+        # Needed verbatim in the SOAPACTION header when controlling playback.
+        self.service_type = service_type or AVTRANSPORT_V1
+        self.icon = icon
+
+    @property
+    def label(self):
+        return self.name or self.address or self.udn or ''
+
+    @property
+    def description(self):
+        """Multi-line human-readable summary for a dialog or item plot."""
+        lines = []
+        maker = ' '.join(p for p in (self.manufacturer, self.model) if p)
+        if maker:
+            lines.append(maker)
+        if self.model_number:
+            lines.append(self.model_number)
+        if self.address:
+            lines.append(self.address)
+        return '\n'.join(lines)
+
+    def to_dict(self):
+        return {
+            'udn': self.udn,
+            'name': self.name,
+            'location': self.location,
+            'address': self.address,
+            'manufacturer': self.manufacturer,
+            'model': self.model,
+            'model_number': self.model_number,
+            'device_type': self.device_type,
+            'control_url': self.control_url,
+            'service_type': self.service_type,
+            'icon': self.icon,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            udn=data.get('udn'),
+            name=data.get('name', ''),
+            location=data.get('location'),
+            address=data.get('address'),
+            manufacturer=data.get('manufacturer'),
+            model=data.get('model'),
+            model_number=data.get('model_number'),
+            device_type=data.get('device_type'),
+            control_url=data.get('control_url'),
+            service_type=data.get('service_type'),
+            icon=data.get('icon'),
+        )
 
 
 class Page(object):

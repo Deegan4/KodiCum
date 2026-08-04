@@ -20,7 +20,58 @@ any single website and ships nothing but the framework.
 | **Quality selection** | When the source returns several renditions: *Ask*, *Best available*, or a preferred resolution. |
 | **Caching & retries** | TTL cache for categories/listings and automatic retry-with-backoff on transient errors. |
 | **Skin widgets** | Favorites / history / a category can be bound as home-screen widgets. |
-| **Settings** | Base API URL, user-agent, page size, quality, cache/retry, resume/history toggles, connection test and maintenance actions. |
+| **Device discovery** | Finds DLNA/UPnP renderers — smart TVs, AV receivers, streaming sticks — on your local network. |
+| **Casting** | Play any item on a discovered TV via UPnP AVTransport, with pause/resume/stop controls. |
+| **Settings** | Base API URL, user-agent, page size, quality, cache/retry, resume/history toggles, device discovery, connection test and maintenance actions. |
+
+### Finding devices on your network
+
+*Devices on your network* in the main menu lists the DLNA/UPnP **MediaRenderer**
+devices it can see — most smart TVs advertise themselves as one. Each entry
+shows the device's manufacturer, model and IP address.
+
+Discovery is a standard SSDP search: a multicast `M-SEARCH` to
+`239.255.255.250:1900`, then a fetch of each responder's device description to
+read its name and service list. Only devices exposing an `AVTransport` service
+are listed, which keeps printers, routers and NAS boxes out of the results.
+
+Results are remembered for a few minutes (configurable) so browsing back into
+the folder is instant; *Scan again* forces a fresh search. If a device you
+expect is missing:
+
+- It may be powered off or have "network standby" / "wake on network" disabled.
+- The device must be on the **same subnet** — the search goes out over the
+  host's default multicast interface, so an active VPN or a second NIC can send
+  it to the wrong network.
+- Some routers block or rate-limit multicast between clients; look for an
+  "IGMP snooping" or "AP isolation" setting.
+- On a slow or busy network, raise the discovery timeout in settings.
+
+### Casting to a TV
+
+Pick **Play on device…** from any item's context menu. If exactly one renderer
+is known it is used straight away; otherwise you choose from a list. The
+device's context menu in *Devices on your network* has **Playback controls**
+for pause / resume / stop.
+
+**Nothing streams through Kodi.** DLNA casting hands the TV a URL and tells it
+to play; the TV then downloads the video *itself*, directly from your content
+source. That has two consequences worth understanding:
+
+- **The stream URL must be reachable from the TV**, over plain `http://` or
+  `https://`. A URL that only Kodi can resolve — a `plugin://` URL, a local
+  file, a host that only resolves on Kodi's machine — is rejected before
+  anything is sent. If your backend serves from `localhost`, the TV cannot
+  reach it; bind it to a LAN address instead.
+- **Playback outlives the add-on.** Once the TV is playing, Kodi is out of the
+  loop; closing it will not stop the video. Use *Playback controls* to stop it.
+
+Progressive streams (MP4/MKV) are strongly preferred, since the TV plays the
+URL with no InputStream Adapter in the path. If a source only offers an
+HLS/DASH manifest the add-on asks before trying — some TVs handle HLS
+natively, many do not. When a device refuses an item it reports a UPnP error
+code, which the add-on surfaces verbatim: `714` means it rejected the format,
+`716` means it could not download the URL, `701` means it was busy.
 
 ## Installation
 
@@ -111,7 +162,9 @@ plugin.video.cumnation/
     └── lib/
         ├── router.py            # URL routing + directory building
         ├── content.py           # JSON content-source client
-        ├── models.py            # Category / Video / Page
+        ├── models.py            # Category / Video / Stream / Renderer / Page
+        ├── dlna.py              # DLNA/UPnP renderer discovery (SSDP)
+        ├── cast.py              # casting + transport control (AVTransport)
         ├── favorites.py         # favorites store
         ├── history.py           # search + watch history
         ├── resume.py            # resume points

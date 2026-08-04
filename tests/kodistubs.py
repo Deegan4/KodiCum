@@ -23,6 +23,9 @@ class _Addon(object):
             'quality': '0',
             'cache_ttl': '10',
             'network_retries': '2',
+            'dlna_enabled': 'true',
+            'dlna_timeout': '3',
+            'dlna_cache_ttl': '5',
         }
         self._profile = tempfile.mkdtemp(prefix='cumnation-test-')
 
