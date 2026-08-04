@@ -20,7 +20,31 @@ any single website and ships nothing but the framework.
 | **Quality selection** | When the source returns several renditions: *Ask*, *Best available*, or a preferred resolution. |
 | **Caching & retries** | TTL cache for categories/listings and automatic retry-with-backoff on transient errors. |
 | **Skin widgets** | Favorites / history / a category can be bound as home-screen widgets. |
-| **Settings** | Base API URL, user-agent, page size, quality, cache/retry, resume/history toggles, connection test and maintenance actions. |
+| **Device discovery** | Finds DLNA/UPnP renderers — smart TVs, AV receivers, streaming sticks — on your local network. |
+| **Settings** | Base API URL, user-agent, page size, quality, cache/retry, resume/history toggles, device discovery, connection test and maintenance actions. |
+
+### Finding devices on your network
+
+*Devices on your network* in the main menu lists the DLNA/UPnP **MediaRenderer**
+devices it can see — most smart TVs advertise themselves as one. Each entry
+shows the device's manufacturer, model and IP address.
+
+Discovery is a standard SSDP search: a multicast `M-SEARCH` to
+`239.255.255.250:1900`, then a fetch of each responder's device description to
+read its name and service list. Only devices exposing an `AVTransport` service
+are listed, which keeps printers, routers and NAS boxes out of the results.
+
+Results are remembered for a few minutes (configurable) so browsing back into
+the folder is instant; *Scan again* forces a fresh search. If a device you
+expect is missing:
+
+- It may be powered off or have "network standby" / "wake on network" disabled.
+- The device must be on the **same subnet** — the search goes out over the
+  host's default multicast interface, so an active VPN or a second NIC can send
+  it to the wrong network.
+- Some routers block or rate-limit multicast between clients; look for an
+  "IGMP snooping" or "AP isolation" setting.
+- On a slow or busy network, raise the discovery timeout in settings.
 
 ## Installation
 
@@ -111,7 +135,8 @@ plugin.video.cumnation/
     └── lib/
         ├── router.py            # URL routing + directory building
         ├── content.py           # JSON content-source client
-        ├── models.py            # Category / Video / Page
+        ├── models.py            # Category / Video / Stream / Renderer / Page
+        ├── dlna.py              # DLNA/UPnP renderer discovery (SSDP)
         ├── favorites.py         # favorites store
         ├── history.py           # search + watch history
         ├── resume.py            # resume points

@@ -20,8 +20,9 @@ from . import favorites
 from . import history
 from . import resume
 from . import cache
+from . import dlna
 from .content import ContentSource, ContentError
-from .models import Video, select_stream
+from .models import Video, Renderer, select_stream
 from .player import ResumePlayer
 
 S = kodiutils.get_string
@@ -147,6 +148,9 @@ class Router(object):
                       plot=S(32015))
         self._add_dir(S(32016), self.url_for(action='history'),
                       plot=S(32017))
+        if dlna.enabled():
+            self._add_dir(S(32060), self.url_for(action='devices'),
+                          plot=S(32061))
         self._add_dir(S(32018), self.url_for(action='open_settings'),
                       plot=S(32019))
         self._end(content='files', sort=False)
@@ -352,6 +356,61 @@ class Router(object):
     def action_clear_cache(self):
         cache.clear()
         kodiutils.notify(S(32046))
+
+    # -- actions: network devices -----------------------------------------
+    def _renderers(self):
+        """Return discovered renderers, scanning only when needed.
+
+        A scan blocks for a few seconds, so warn the user before starting one
+        and reuse the remembered result while it is fresh.
+        """
+        renderers = dlna.cached()
+        if renderers is None:
+            kodiutils.notify(S(32062))
+            renderers = dlna.discover()
+        return renderers
+
+    def action_devices(self):
+        if not dlna.enabled():
+            kodiutils.notify(S(32067))
+            self._end(content='files', sort=False)
+            return
+        renderers = self._renderers()
+        if not renderers:
+            kodiutils.notify(S(32063))
+        for renderer in renderers:
+            self._add_dir(renderer.label,
+                          self.url_for(action='device_info',
+                                       data=json.dumps(renderer.to_dict())),
+                          thumb=renderer.icon,
+                          plot=renderer.description)
+        self._add_dir(S(32065), self.url_for(action='rescan_devices'))
+        self._end(content='files', sort=False)
+
+    def action_device_info(self):
+        renderer = Renderer.from_dict(json.loads(self.args.get('data', '{}')))
+        kodiutils.ok_dialog(renderer.description or S(32066),
+                            heading=renderer.label)
+
+    def action_rescan_devices(self):
+        dlna.forget()
+        kodiutils.refresh_container()
+
+    def action_scan_devices(self):
+        """Settings button: rescan now and report what turned up."""
+        if not dlna.enabled():
+            kodiutils.ok_dialog(S(32067))
+            return
+        dlna.forget()
+        kodiutils.notify(S(32062))
+        renderers = dlna.discover()
+        if not renderers:
+            kodiutils.ok_dialog(S(32063))
+            return
+        listing = '\n'.join(
+            '{0} ({1})'.format(r.label, r.address or '?') for r in renderers)
+        kodiutils.ok_dialog('{0}\n\n{1}'.format(
+            S(32064).format(len(renderers)), listing))
 
     # -- actions: skin widgets --------------------------------------------
     def action_widget(self):

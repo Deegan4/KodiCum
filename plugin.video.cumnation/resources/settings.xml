@@ -66,6 +66,55 @@
                 </setting>
             </group>
         </category>
+        <category id="devices" label="32150">
+            <group id="1">
+                <setting id="dlna_enabled" type="boolean" label="32151" help="32152">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="dlna_timeout" type="integer" label="32153" help="32154">
+                    <level>1</level>
+                    <default>3</default>
+                    <dependencies>
+                        <dependency type="enable" setting="dlna_enabled" operator="is">true</dependency>
+                    </dependencies>
+                    <constraints>
+                        <minimum>1</minimum>
+                        <step>1</step>
+                        <maximum>10</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+                <setting id="dlna_cache_ttl" type="integer" label="32155" help="32156">
+                    <level>1</level>
+                    <default>5</default>
+                    <dependencies>
+                        <dependency type="enable" setting="dlna_enabled" operator="is">true</dependency>
+                    </dependencies>
+                    <constraints>
+                        <minimum>0</minimum>
+                        <step>5</step>
+                        <maximum>60</maximum>
+                    </constraints>
+                    <control type="slider" format="integer">
+                        <popup>false</popup>
+                    </control>
+                </setting>
+                <setting id="scan_devices" type="action" label="32157">
+                    <level>0</level>
+                    <dependencies>
+                        <dependency type="enable" setting="dlna_enabled" operator="is">true</dependency>
+                    </dependencies>
+                    <data>RunPlugin(plugin://plugin.video.cumnation/?action=scan_devices)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+            </group>
+        </category>
         <category id="playback" label="32110">
             <group id="1">
                 <setting id="quality" type="integer" label="32135" help="32136">

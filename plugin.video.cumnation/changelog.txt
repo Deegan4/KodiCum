@@ -1,3 +1,13 @@
+v1.1.0 (2026-08-04)
+- Device discovery: find DLNA/UPnP MediaRenderers (smart TVs, AV receivers,
+  streaming sticks) on the local network via an SSDP M-SEARCH, listed with
+  their manufacturer, model and IP address
+- Only devices exposing an AVTransport service are listed, so media servers,
+  printers and routers are filtered out
+- Scan results are cached for a configurable few minutes, with a "Scan again"
+  item and a "Scan for devices now" settings button
+- New settings: enable/disable discovery, discovery timeout, result lifetime
+
 v1.0.2 (2026-07-21)
 - Adaptive streaming: HLS/DASH/SmoothStreaming via InputStream Adapter, with
   optional Widevine/PlayReady DRM (license_type/license_key from /resolve)

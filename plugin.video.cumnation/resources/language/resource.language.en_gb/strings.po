@@ -136,6 +136,39 @@ msgctxt "#32046"
 msgid "Cache cleared"
 msgstr ""
 
+# --- Network devices (DLNA) --------------------------------------------
+msgctxt "#32060"
+msgid "Devices on your network"
+msgstr ""
+
+msgctxt "#32061"
+msgid "Find smart TVs and other DLNA renderers on your local network"
+msgstr ""
+
+msgctxt "#32062"
+msgid "Scanning for devices..."
+msgstr ""
+
+msgctxt "#32063"
+msgid "No DLNA renderers found"
+msgstr ""
+
+msgctxt "#32064"
+msgid "Found {0} device(s):"
+msgstr ""
+
+msgctxt "#32065"
+msgid "Scan again"
+msgstr ""
+
+msgctxt "#32066"
+msgid "No further details reported by this device"
+msgstr ""
+
+msgctxt "#32067"
+msgid "Device discovery is disabled in add-on settings"
+msgstr ""
+
 # --- Errors ------------------------------------------------------------
 msgctxt "#32050"
 msgid "Configure a content source in add-on settings first"
@@ -260,4 +293,37 @@ msgstr ""
 
 msgctxt "#32140"
 msgid "Test connection"
+msgstr ""
+
+# --- Settings: device discovery ----------------------------------------
+msgctxt "#32150"
+msgid "Device Discovery"
+msgstr ""
+
+msgctxt "#32151"
+msgid "Discover DLNA devices"
+msgstr ""
+
+msgctxt "#32152"
+msgid "Look for DLNA/UPnP renderers (smart TVs) on the local network"
+msgstr ""
+
+msgctxt "#32153"
+msgid "Discovery timeout (seconds)"
+msgstr ""
+
+msgctxt "#32154"
+msgid "How long to wait for devices to answer the search. Raise it on a busy or slow network."
+msgstr ""
+
+msgctxt "#32155"
+msgid "Remember devices for (minutes)"
+msgstr ""
+
+msgctxt "#32156"
+msgid "Reuse the last scan result for this long. 0 rescans every time."
+msgstr ""
+
+msgctxt "#32157"
+msgid "Scan for devices now"
 msgstr ""
