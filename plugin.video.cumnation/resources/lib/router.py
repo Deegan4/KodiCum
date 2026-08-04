@@ -21,6 +21,7 @@ from . import history
 from . import resume
 from . import cache
 from . import dlna
+from . import cast
 from .content import ContentSource, ContentError
 from .models import Video, Renderer, select_stream
 from .player import ResumePlayer
@@ -134,6 +135,10 @@ class Router(object):
         if resume.enabled() and resume.get(video.id):
             menu.append((S(32032), 'RunPlugin({0})'.format(
                 self.url_for(action='clear_resume', video_id=video.id))))
+        if dlna.enabled():
+            menu.append((S(32070), 'RunPlugin({0})'.format(
+                self.url_for(action='cast',
+                             data=json.dumps(video.to_dict())))))
         if extra:
             menu.extend(extra)
         return menu
@@ -379,11 +384,14 @@ class Router(object):
         if not renderers:
             kodiutils.notify(S(32063))
         for renderer in renderers:
+            payload = json.dumps(renderer.to_dict())
             self._add_dir(renderer.label,
-                          self.url_for(action='device_info',
-                                       data=json.dumps(renderer.to_dict())),
+                          self.url_for(action='device_info', data=payload),
                           thumb=renderer.icon,
-                          plot=renderer.description)
+                          plot=renderer.description,
+                          context=[(S(32072), 'RunPlugin({0})'.format(
+                              self.url_for(action='device_control',
+                                           data=payload)))])
         self._add_dir(S(32065), self.url_for(action='rescan_devices'))
         self._end(content='files', sort=False)
 
@@ -411,6 +419,85 @@ class Router(object):
             '{0} ({1})'.format(r.label, r.address or '?') for r in renderers)
         kodiutils.ok_dialog('{0}\n\n{1}'.format(
             S(32064).format(len(renderers)), listing))
+
+    # -- actions: casting --------------------------------------------------
+    def _choose_renderer(self):
+        """Pick a device to cast to, asking only when there is a choice."""
+        renderers = self._renderers()
+        if not renderers:
+            kodiutils.notify(S(32063))
+            return None
+        if len(renderers) == 1:
+            return renderers[0]
+        choice = kodiutils.select(S(32071), [r.label for r in renderers])
+        return renderers[choice] if choice >= 0 else None
+
+    def _pick_cast_stream(self, streams):
+        """Choose a stream to hand to a TV.
+
+        Progressive streams are strongly preferred: the device fetches the URL
+        itself with no InputStream Adapter in the path, so an HLS/DASH
+        manifest is only playable if the TV happens to support it natively.
+        When that is all the source offers, ask rather than fail silently.
+        The quality setting still applies, but "Ask" falls back to best --
+        the user has already answered one dialog picking the device.
+        """
+        direct = [s for s in streams if not s.is_adaptive]
+        if not direct:
+            if not kodiutils.yesno_dialog(S(32075)):
+                return None
+            direct = streams
+        pref = kodiutils.get_setting_int('quality', 0)
+        return select_stream(direct, 0 if pref <= 1 else pref)
+
+    def action_cast(self):
+        video = Video.from_dict(json.loads(self.args.get('data', '{}')))
+        renderer = self._choose_renderer()
+        if renderer is None:
+            return
+
+        try:
+            streams = self.source.resolve(video.id, video.url)
+        except ContentError as exc:
+            kodiutils.notify(str(exc), icon=xbmcgui.NOTIFICATION_ERROR)
+            return
+
+        stream = self._pick_cast_stream(streams)
+        if stream is None:
+            return
+
+        try:
+            cast.play(renderer, stream, video)
+        except cast.CastError as exc:
+            kodiutils.ok_dialog('{0}\n\n{1}'.format(S(32074), str(exc)),
+                                heading=renderer.label)
+            return
+        history.add_watched(video)
+        kodiutils.notify(S(32073).format(renderer.label))
+
+    def action_device_control(self):
+        """A small transport remote for whatever the device is playing.
+
+        Playback lives on the TV and outlives this add-on invocation, so
+        stopping or pausing it has to be an explicit action from here.
+        """
+        renderer = Renderer.from_dict(json.loads(self.args.get('data', '{}')))
+        state = cast.transport_state(renderer)
+        if state is None:
+            kodiutils.ok_dialog(S(32080), heading=renderer.label)
+            return
+
+        commands = [(S(32076), cast.pause), (S(32077), cast.resume),
+                    (S(32078), cast.stop)]
+        heading = '{0} - {1}'.format(renderer.label, state)
+        choice = kodiutils.select(heading, [label for label, _ in commands])
+        if choice < 0:
+            return
+        try:
+            commands[choice][1](renderer)
+        except cast.CastError as exc:
+            kodiutils.ok_dialog('{0}\n\n{1}'.format(S(32074), str(exc)),
+                                heading=renderer.label)
 
     # -- actions: skin widgets --------------------------------------------
     def action_widget(self):

@@ -18,7 +18,8 @@ kodistubs.install()
 ADDON_ROOT = os.path.join(os.path.dirname(__file__), '..', 'plugin.video.cumnation')
 sys.path.insert(0, os.path.abspath(ADDON_ROOT))
 
-from resources.lib import favorites, history, resume, kodiutils, cache, dlna  # noqa: E402
+from resources.lib import (  # noqa: E402
+    favorites, history, resume, kodiutils, cache, dlna, cast)
 from resources.lib.models import (  # noqa: E402
     Video, Category, Page, Stream, Renderer, select_stream)
 
@@ -471,6 +472,234 @@ class DeviceSettingsTests(unittest.TestCase):
             self.assertEqual(dlna.timeout(), 1)
         finally:
             kodiutils.set_setting('dlna_timeout', '3')
+
+
+FAULT_XML = """<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body><s:Fault>
+    <faultcode>s:Client</faultcode>
+    <detail>
+      <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+        <errorCode>714</errorCode>
+        <errorDescription>Illegal MIME-type</errorDescription>
+      </UPnPError>
+    </detail>
+  </s:Fault></s:Body>
+</s:Envelope>"""
+
+TRANSPORT_INFO_XML = """<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <u:GetTransportInfoResponse
+        xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+      <CurrentTransportState>PLAYING</CurrentTransportState>
+      <CurrentSpeed>1</CurrentSpeed>
+    </u:GetTransportInfoResponse>
+  </s:Body>
+</s:Envelope>"""
+
+
+def make_renderer():
+    return Renderer(udn='uuid:tv', name='Living Room TV',
+                    address='192.168.1.50',
+                    control_url='http://192.168.1.50:9197/upnp/control/AVT',
+                    service_type='urn:schemas-upnp-org:service:AVTransport:2')
+
+
+class CastableUrlTests(unittest.TestCase):
+    def test_accepts_http_urls(self):
+        self.assertTrue(cast.is_castable('http://host/v.mp4'))
+        self.assertTrue(cast.is_castable('https://host/v.mp4'))
+
+    def test_rejects_urls_the_tv_could_not_fetch(self):
+        # The device downloads the URL itself, so anything Kodi resolves
+        # internally is useless to it.
+        for url in ('plugin://plugin.video.cumnation/?action=play',
+                    'file:///home/user/v.mp4', '/home/user/v.mp4', '', None):
+            self.assertFalse(cast.is_castable(url), url)
+
+
+class MimeAndDurationTests(unittest.TestCase):
+    def test_guesses_from_extension(self):
+        self.assertEqual(cast.guess_mime('http://h/a/v.mkv'),
+                         'video/x-matroska')
+        self.assertEqual(cast.guess_mime('http://h/v.M3U8'),
+                         'application/vnd.apple.mpegurl')
+
+    def test_query_string_does_not_confuse_extension(self):
+        self.assertEqual(cast.guess_mime('http://h/v.mp4?token=a.mkv'),
+                         'video/mp4')
+
+    def test_unknown_extension_falls_back(self):
+        self.assertEqual(cast.guess_mime('http://h/stream'), 'video/mp4')
+
+    def test_duration_formatting(self):
+        self.assertEqual(cast.format_duration(3661), '1:01:01.000')
+        self.assertEqual(cast.format_duration(600), '0:10:00.000')
+
+    def test_duration_rejects_unusable_values(self):
+        for value in (0, -5, None, 'abc'):
+            self.assertIsNone(cast.format_duration(value))
+
+
+class MetadataTests(unittest.TestCase):
+    def test_includes_title_artwork_and_duration(self):
+        video = Video(vid='v1', title='My Movie', plot='A plot',
+                      thumb='http://h/t.jpg', duration=600)
+        didl = cast.build_metadata(Stream('http://h/v.mp4'), video)
+        self.assertIn('<dc:title>My Movie</dc:title>', didl)
+        self.assertIn('<upnp:class>object.item.videoItem</upnp:class>', didl)
+        self.assertIn('http://h/t.jpg', didl)
+        self.assertIn('duration="0:10:00.000"', didl)
+
+    def test_declares_protocol_info_with_dlna_flags(self):
+        didl = cast.build_metadata(Stream('http://h/v.mkv'))
+        self.assertIn('http-get:*:video/x-matroska:DLNA.ORG_OP=01', didl)
+
+    def test_explicit_stream_mime_wins_over_extension(self):
+        stream = Stream('http://h/stream', mime_type='video/webm')
+        self.assertIn('http-get:*:video/webm:', cast.build_metadata(stream))
+
+    def test_escapes_xml_in_titles_and_urls(self):
+        video = Video(vid='v1', title='Tom & Jerry <2>')
+        didl = cast.build_metadata(
+            Stream('http://h/v.mp4?a=1&b=2'), video)
+        self.assertIn('Tom &amp; Jerry &lt;2&gt;', didl)
+        self.assertIn('a=1&amp;b=2', didl)
+        # Must still be well-formed XML after escaping.
+        __import__('xml.etree.ElementTree', fromlist=['x']).fromstring(didl)
+
+    def test_survives_missing_video_metadata(self):
+        didl = cast.build_metadata(Stream('http://h/v.mp4'))
+        self.assertIn('<dc:title>Video</dc:title>', didl)
+        self.assertNotIn('duration=', didl)
+
+
+class SoapEnvelopeTests(unittest.TestCase):
+    def test_preserves_argument_order(self):
+        # UPnP actions are positional; a reordered body is rejected.
+        envelope = cast.build_envelope(
+            'urn:schemas-upnp-org:service:AVTransport:1', 'SetAVTransportURI',
+            (('InstanceID', 0), ('CurrentURI', 'http://h/v.mp4'),
+             ('CurrentURIMetaData', '')))
+        self.assertLess(envelope.index('<InstanceID>'),
+                        envelope.index('<CurrentURI>'))
+        self.assertLess(envelope.index('<CurrentURI>'),
+                        envelope.index('<CurrentURIMetaData>'))
+
+    def test_escapes_argument_values(self):
+        envelope = cast.build_envelope('urn:x', 'Play',
+                                       (('Meta', '<DIDL-Lite a="1"/>'),))
+        self.assertIn('&lt;DIDL-Lite', envelope)
+        __import__('xml.etree.ElementTree', fromlist=['x']).fromstring(envelope)
+
+    def test_names_the_action_and_service(self):
+        envelope = cast.build_envelope('urn:svc:2', 'Stop',
+                                       (('InstanceID', 0),))
+        self.assertIn('<u:Stop xmlns:u="urn:svc:2">', envelope)
+        self.assertIn('</u:Stop>', envelope)
+
+
+class SoapResponseTests(unittest.TestCase):
+    def test_parses_response_values(self):
+        values = cast.parse_response(TRANSPORT_INFO_XML)
+        self.assertEqual(values['CurrentTransportState'], 'PLAYING')
+        self.assertEqual(values['CurrentSpeed'], '1')
+
+    def test_parses_upnp_fault_code_and_description(self):
+        self.assertEqual(cast.parse_fault(FAULT_XML),
+                         'Illegal MIME-type (714)')
+
+    def test_unparseable_bodies_degrade(self):
+        self.assertEqual(cast.parse_response('<not xml'), {})
+        self.assertIsNone(cast.parse_fault('<not xml'))
+        self.assertIsNone(cast.parse_fault('<a><b/></a>'))
+
+
+class CastCommandTests(unittest.TestCase):
+    """Exercise the command layer with the single network call replaced."""
+
+    def setUp(self):
+        self.calls = []
+        self.original = cast.soap_request
+        self.responses = {}
+
+        def recorder(renderer, action, arguments=()):
+            self.calls.append((action, list(arguments)))
+            if action in self.failing:
+                raise cast.CastError('boom')
+            return self.responses.get(action, {})
+
+        self.failing = set()
+        cast.soap_request = recorder
+
+    def tearDown(self):
+        cast.soap_request = self.original
+
+    def _actions(self):
+        return [action for action, _ in self.calls]
+
+    def test_play_stops_then_sets_uri_then_plays(self):
+        cast.play(make_renderer(), Stream('http://h/v.mp4'), make_video())
+        self.assertEqual(self._actions(),
+                         ['Stop', 'SetAVTransportURI', 'Play'])
+
+    def test_play_sends_url_and_metadata_in_order(self):
+        cast.play(make_renderer(), Stream('http://h/v.mp4'), make_video())
+        args = dict(self.calls[1][1])
+        self.assertEqual(args['CurrentURI'], 'http://h/v.mp4')
+        self.assertIn('<dc:title>Test</dc:title>', args['CurrentURIMetaData'])
+        self.assertEqual(self.calls[2][1], [('InstanceID', 0), ('Speed', 1)])
+
+    def test_preparatory_stop_failure_is_ignored(self):
+        # An idle renderer may reject Stop; that must not abort the cast.
+        self.failing = {'Stop'}
+        cast.play(make_renderer(), Stream('http://h/v.mp4'))
+        self.assertEqual(self._actions(),
+                         ['Stop', 'SetAVTransportURI', 'Play'])
+
+    def test_set_uri_failure_propagates(self):
+        self.failing = {'SetAVTransportURI'}
+        with self.assertRaises(cast.CastError):
+            cast.play(make_renderer(), Stream('http://h/v.mp4'))
+
+    def test_uncastable_url_never_reaches_the_network(self):
+        with self.assertRaises(cast.CastError):
+            cast.play(make_renderer(), Stream('plugin://x/?action=play'))
+        self.assertEqual(self.calls, [])
+
+    def test_transport_controls(self):
+        renderer = make_renderer()
+        cast.pause(renderer)
+        cast.resume(renderer)
+        cast.stop(renderer)
+        self.assertEqual(self._actions(), ['Pause', 'Play', 'Stop'])
+
+    def test_transport_state_reported(self):
+        self.responses['GetTransportInfo'] = {
+            'CurrentTransportState': 'PLAYING'}
+        self.assertEqual(cast.transport_state(make_renderer()), 'PLAYING')
+
+    def test_transport_state_none_when_unreachable(self):
+        self.failing = {'GetTransportInfo'}
+        self.assertIsNone(cast.transport_state(make_renderer()))
+
+
+class RendererServiceTypeTests(unittest.TestCase):
+    def test_service_type_captured_from_description(self):
+        r = dlna.parse_device_description(RENDERER_XML, 'http://h/d.xml')
+        self.assertEqual(r.service_type,
+                         'urn:schemas-upnp-org:service:AVTransport:1')
+
+    def test_service_type_survives_the_scan_cache(self):
+        r = make_renderer()
+        self.assertEqual(Renderer.from_dict(r.to_dict()).service_type,
+                         'urn:schemas-upnp-org:service:AVTransport:2')
+
+    def test_defaults_when_a_cached_entry_predates_the_field(self):
+        r = Renderer.from_dict({'udn': 'u', 'name': 'Old TV'})
+        self.assertEqual(r.service_type,
+                         'urn:schemas-upnp-org:service:AVTransport:1')
 
 
 if __name__ == '__main__':

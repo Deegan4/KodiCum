@@ -5,6 +5,8 @@ Keeping these as explicit classes (rather than raw dicts) gives the router a
 stable contract regardless of which content source produced them.
 """
 
+AVTRANSPORT_V1 = 'urn:schemas-upnp-org:service:AVTransport:1'
+
 
 class Category(object):
     """A browsable node: a genre, tag, channel or sub-listing."""
@@ -154,7 +156,8 @@ class Renderer(object):
 
     def __init__(self, udn, name, location=None, address=None,
                  manufacturer=None, model=None, model_number=None,
-                 device_type=None, control_url=None, icon=None):
+                 device_type=None, control_url=None, service_type=None,
+                 icon=None):
         self.udn = udn                    # stable unique id, e.g. 'uuid:...'
         self.name = name                  # friendlyName, e.g. 'Living Room TV'
         self.location = location          # device description URL
@@ -164,6 +167,9 @@ class Renderer(object):
         self.model_number = model_number
         self.device_type = device_type
         self.control_url = control_url    # AVTransport control endpoint
+        # Exact AVTransport service type, e.g. '...:service:AVTransport:1'.
+        # Needed verbatim in the SOAPACTION header when controlling playback.
+        self.service_type = service_type or AVTRANSPORT_V1
         self.icon = icon
 
     @property
@@ -194,6 +200,7 @@ class Renderer(object):
             'model_number': self.model_number,
             'device_type': self.device_type,
             'control_url': self.control_url,
+            'service_type': self.service_type,
             'icon': self.icon,
         }
 
@@ -209,6 +216,7 @@ class Renderer(object):
             model_number=data.get('model_number'),
             device_type=data.get('device_type'),
             control_url=data.get('control_url'),
+            service_type=data.get('service_type'),
             icon=data.get('icon'),
         )
 

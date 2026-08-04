@@ -182,14 +182,14 @@ def fetch_description(location, request_timeout=DESCRIPTION_TIMEOUT):
         return None
 
 
-def _local(tag):
+def local_name(tag):
     """Strip the XML namespace from a tag name."""
     return tag.rsplit('}', 1)[-1]
 
 
 def _child(element, name):
     for child in element:
-        if _local(child.tag) == name:
+        if local_name(child.tag) == name:
             return child
     return None
 
@@ -201,20 +201,26 @@ def _text(element, name, default=None):
     return child.text.strip() or default
 
 
-def _avtransport_control_url(device, base):
-    """Return the AVTransport control URL of a device element, or None."""
+def _avtransport_service(device, base):
+    """Return ``(control_url, service_type)`` for a device's AVTransport.
+
+    The exact service type is kept, not just assumed to be version 1: it goes
+    into the ``SOAPACTION`` header when controlling the device, and a renderer
+    advertising ``AVTransport:2`` will reject actions addressed to ``:1``.
+    """
     services = _child(device, 'serviceList')
     if services is None:
-        return None
+        return None, None
     for service in services:
-        if _local(service.tag) != 'service':
+        if local_name(service.tag) != 'service':
             continue
-        if not (_text(service, 'serviceType') or '').startswith(AVTRANSPORT):
+        service_type = _text(service, 'serviceType') or ''
+        if not service_type.startswith(AVTRANSPORT):
             continue
         control = _text(service, 'controlURL')
         if control:
-            return urljoin(base, control)
-    return None
+            return urljoin(base, control), service_type
+    return None, None
 
 
 def _best_icon(device, base):
@@ -224,7 +230,7 @@ def _best_icon(device, base):
         return None
     best, best_width = None, -1
     for icon in icons:
-        if _local(icon.tag) != 'icon':
+        if local_name(icon.tag) != 'icon':
             continue
         url = _text(icon, 'url')
         if not url:
@@ -258,9 +264,9 @@ def parse_device_description(xml_text, location, address=None):
     base = _text(root, 'URLBase') or location
 
     for device in root.iter():
-        if _local(device.tag) != 'device':
+        if local_name(device.tag) != 'device':
             continue
-        control_url = _avtransport_control_url(device, base)
+        control_url, service_type = _avtransport_service(device, base)
         if not control_url:
             continue
         host = address or urlparse(location).hostname
@@ -274,6 +280,7 @@ def parse_device_description(xml_text, location, address=None):
             model_number=_text(device, 'modelNumber'),
             device_type=_text(device, 'deviceType'),
             control_url=control_url,
+            service_type=service_type,
             icon=_best_icon(device, base),
         )
     return None

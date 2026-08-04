@@ -1,4 +1,13 @@
 v1.1.0 (2026-08-04)
+- Casting: "Play on device..." on any item sends it to a discovered TV via
+  UPnP AVTransport, with DIDL-Lite metadata so the title, artwork and duration
+  show on screen
+- Playback controls (pause / resume / stop) from a device's context menu,
+  since playback runs on the TV and outlives the add-on
+- Progressive streams are preferred for casting; the add-on asks first when a
+  source only offers an adaptive manifest, which most TVs cannot play directly
+- Streams the TV could not fetch itself (plugin://, file://, local paths) are
+  rejected up front, and UPnP error codes from a refusing device are surfaced
 - Device discovery: find DLNA/UPnP MediaRenderers (smart TVs, AV receivers,
   streaming sticks) on the local network via an SSDP M-SEARCH, listed with
   their manufacturer, model and IP address

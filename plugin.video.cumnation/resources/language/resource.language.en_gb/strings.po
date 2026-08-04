@@ -169,6 +169,55 @@ msgctxt "#32067"
 msgid "Device discovery is disabled in add-on settings"
 msgstr ""
 
+# --- Casting -----------------------------------------------------------
+msgctxt "#32070"
+msgid "Play on device..."
+msgstr ""
+
+msgctxt "#32071"
+msgid "Play on which device?"
+msgstr ""
+
+msgctxt "#32072"
+msgid "Playback controls"
+msgstr ""
+
+msgctxt "#32073"
+msgid "Playing on {0}"
+msgstr ""
+
+msgctxt "#32074"
+msgid "The device refused playback:"
+msgstr ""
+
+msgctxt "#32075"
+msgid "Only an adaptive stream is available for this item. Most TVs cannot play one directly. Try anyway?"
+msgstr ""
+
+msgctxt "#32076"
+msgid "Pause"
+msgstr ""
+
+msgctxt "#32077"
+msgid "Resume"
+msgstr ""
+
+msgctxt "#32078"
+msgid "Stop"
+msgstr ""
+
+msgctxt "#32080"
+msgid "The device did not respond. It may be switched off or on another network."
+msgstr ""
+
+msgctxt "#32081"
+msgid "This stream cannot be cast: the device needs a direct http:// or https:// URL it can fetch itself."
+msgstr ""
+
+msgctxt "#32082"
+msgid "This device did not report a playback control endpoint"
+msgstr ""
+
 # --- Errors ------------------------------------------------------------
 msgctxt "#32050"
 msgid "Configure a content source in add-on settings first"

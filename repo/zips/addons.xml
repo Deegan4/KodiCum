@@ -18,7 +18,7 @@
                 <icon>resources/media/icon.png</icon>
                 <fanart>resources/media/fanart.jpg</fanart>
             </assets>
-            <news>v1.1.0 - Device discovery: find DLNA/UPnP renderers (smart TVs, AV receivers, streaming sticks) on your local network via SSDP, listed with manufacturer, model and IP address, with cached results and a rescan action.
+            <news>v1.1.0 - Device discovery and casting: find DLNA/UPnP renderers (smart TVs, AV receivers, streaming sticks) on your local network via SSDP, then send any item to one with "Play on device..." and control it with pause/resume/stop.
 v1.0.2 -Adaptive streaming (HLS/DASH via InputStream Adapter) with optional DRM and a quality picker; TTL response caching and network retries; skin widget endpoints and a Test Connection button.
 v1.0.1 - Latest-Kodi compatibility: use the InfoTag API on Kodi 20+ (Nexus/Omega) with a Kodi 19 fallback; drop the unused beautifulsoup4 dependency.
 v1.0.0 - Initial release: categories, search, favorites, history, pagination, settings.</news>
