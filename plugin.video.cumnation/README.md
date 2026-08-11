@@ -140,6 +140,26 @@ python3 plugin.video.cumnation/resources/lib/mock_server.py 8080
 # then set Base API URL to http://<your-ip>:8080
 ```
 
+`GET /` on the running server is a small status dashboard (uptime, request
+log) — handy for checking it's up when it's running headless somewhere you
+can't easily shell into, e.g. a TV box on Tailscale.
+
+### Running it on an Android TV box (Termux)
+
+To run the reference backend directly on a TV box via [Termux](https://termux.dev),
+supervised so it survives the screen sleeping and restarts if it crashes, plus
+`sshd` for remote administration:
+
+```bash
+pkg install -y curl && curl -sL \
+  https://raw.githubusercontent.com/Deegan4/KodiCum/main/tools/termux_bootstrap.sh | sh
+```
+
+Then run `passwd` once to set an SSH login password (`tools/termux_bootstrap.sh`
+does everything else, but a password can't be set non-interactively without
+putting it in plaintext in the script). See the script's header comment for
+what it does and the manual steps if you'd rather run them yourself.
+
 ## Development
 
 ```bash

@@ -1,3 +1,11 @@
+v1.1.2 (2026-08-11)
+- README: documents running the reference backend headless on an Android TV
+  box via Termux, using the new tools/termux_bootstrap.sh (installs
+  dependencies, clones the repo, supervises mock_server.py so it survives
+  Doze/crashes, and starts sshd for remote administration)
+- No code changes to the add-on; README.md ships inside the add-on zip, so
+  the version bumps to keep published zip bytes immutable per version
+
 v1.1.1 (2026-08-04)
 - Reference backend (mock_server.py): serves a mobile-friendly status
   dashboard at "/" (up/down, uptime, category/video counts, a live request
