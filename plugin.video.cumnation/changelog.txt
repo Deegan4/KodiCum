@@ -1,3 +1,11 @@
+v1.1.1 (2026-08-04)
+- Reference backend (mock_server.py): serves a mobile-friendly status
+  dashboard at "/" (up/down, uptime, category/video counts, a live request
+  log) and a "/status" JSON endpoint, so the backend can be checked remotely
+  when run headless, e.g. in Termux on a TV box
+- No changes to the add-on itself (mock_server.py is a dev/reference tool,
+  not loaded by Kodi)
+
 v1.1.0 (2026-08-04)
 - Casting: "Play on device..." on any item sends it to a discovered TV via
   UPnP AVTransport, with DIDL-Lite metadata so the title, artwork and duration
