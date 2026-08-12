@@ -1,9 +1,15 @@
 #!/data/data/com.termux/files/usr/bin/sh
-# Bootstrap the Cumnation reference backend (mock_server.py) in Termux,
-# supervised so it survives Doze and restarts on crash, and start sshd so the
-# box can be administered remotely afterwards.
+# Bootstrap the Cumnation reference backend (mock_server.py) in Termux and
+# start sshd so the box can be administered remotely afterwards.
 #
-# Safe to re-run: every step here is idempotent.
+# The backend runs under a small restart-on-crash loop rather than
+# termux-services: termux-services' supervisor (runsvdir) is started by a
+# profile script that only runs when Termux's *own shell* starts up, so a
+# service enabled mid-session sits dead until the app is fully force-closed
+# and reopened -- an easy way to end up with a script that "didn't work" for
+# no obvious reason. A plain loop has no such dependency.
+#
+# Safe to re-run: existing processes are stopped and replaced.
 #
 # Usage (typed once, on the device itself):
 #   pkg install -y curl && curl -sL \
@@ -16,9 +22,20 @@ set -u
 
 REPO_DIR="$HOME/KodiCum"
 PORT="${CUMNATION_PORT:-8765}"
+SERVER="$REPO_DIR/plugin.video.cumnation/resources/lib/mock_server.py"
+
+detect_ip() {
+    addrs=$(ip addr show 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v '^127\.')
+    tailscale_addr=$(echo "$addrs" | grep '^100\.' | head -1)
+    if [ -n "$tailscale_addr" ]; then
+        echo "$tailscale_addr"
+    else
+        echo "$addrs" | head -1
+    fi
+}
 
 echo "==> Installing packages"
-pkg install -y python git curl openssh termux-services
+pkg install -y python git curl openssh
 
 echo "==> Fetching KodiCum"
 if [ -d "$REPO_DIR/.git" ]; then
@@ -27,21 +44,30 @@ else
     git clone https://github.com/Deegan4/KodiCum.git "$REPO_DIR"
 fi
 
-echo "==> Installing the cumnation service (port $PORT)"
-mkdir -p "$PREFIX/var/service/cumnation"
-cat > "$PREFIX/var/service/cumnation/run" <<EOF
-#!/data/data/com.termux/files/usr/bin/sh
-exec python "$REPO_DIR/plugin.video.cumnation/resources/lib/mock_server.py" $PORT 2>&1
-EOF
-chmod +x "$PREFIX/var/service/cumnation/run"
-sv-enable cumnation
-sv up cumnation
+echo "==> Starting the backend (port $PORT)"
+pkill -f "resources/lib/mock_server.py" 2>/dev/null
+command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock
+nohup sh -c '
+    while true; do
+        python "$1" "$2"
+        sleep 2
+    done
+' _ "$SERVER" "$PORT" > "$HOME/cumnation.log" 2>&1 &
+disown
 
 echo "==> Starting sshd (port 8022)"
 sshd
 
+ip=$(detect_ip)
 echo
 echo "Done."
-echo "  - Backend:   sv status cumnation   (dashboard at http://<this-device-ip>:$PORT/)"
-echo "  - SSH login: run 'passwd' now to set a password, then connect with"
-echo "               ssh -p 8022 $(whoami)@<this-device-ip>"
+echo "  - Backend:   curl -s http://127.0.0.1:$PORT/status   (log: ~/cumnation.log)"
+if [ -n "$ip" ]; then
+    echo "               dashboard at http://$ip:$PORT/"
+    echo "  - SSH login: run 'passwd' now to set a password, then connect FROM ANOTHER"
+    echo "               DEVICE (not here) with: ssh -p 8022 $(whoami)@$ip"
+else
+    echo "               could not detect an IP -- run 'ip addr show' to find one"
+    echo "  - SSH login: run 'passwd' now to set a password, then connect from another"
+    echo "               device with: ssh -p 8022 $(whoami)@<this-device-ip>"
+fi
