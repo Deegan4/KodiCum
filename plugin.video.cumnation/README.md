@@ -160,6 +160,15 @@ does everything else, but a password can't be set non-interactively without
 putting it in plaintext in the script). See the script's header comment for
 what it does and the manual steps if you'd rather run them yourself.
 
+The script also writes a [Termux:Boot](https://f-droid.org/packages/com.termux.boot/)
+hook so the backend and `sshd` come back up automatically on every device
+reboot -- install and launch **Termux:Boot** once (from F-Droid, nothing to
+configure in the app itself) and the dashboard is reachable as soon as the box
+powers on, no need to open Termux again. The Kodi add-on itself can't start
+this directly -- it's a separate sandboxed Android app with no way to reach
+into Termux -- so this is the OS-level equivalent: the backend is simply
+always running rather than being launched by anything.
+
 ## Development
 
 ```bash
