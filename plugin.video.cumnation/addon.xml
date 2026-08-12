@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.cumnation"
        name="Cumnation"
-       version="1.1.2"
+       version="1.1.3"
        provider-name="KodiCum">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
@@ -20,7 +20,8 @@
             <icon>resources/media/icon.png</icon>
             <fanart>resources/media/fanart.jpg</fanart>
         </assets>
-        <news>v1.1.2 - Docs only: README instructions for running the reference backend headless on an Android TV box via Termux (tools/termux_bootstrap.sh), with SSH for remote administration.
+        <news>v1.1.3 - Docs only: README notes that tools/termux_bootstrap.sh now installs a Termux:Boot autostart hook, so the reference backend and sshd survive a device reboot without reopening Termux.
+v1.1.2 - Docs only: README instructions for running the reference backend headless on an Android TV box via Termux (tools/termux_bootstrap.sh), with SSH for remote administration.
 v1.1.1 - Reference backend: mock_server.py now serves a mobile-friendly status dashboard at "/" (uptime, request log) and a "/status" JSON endpoint, for checking the backend is up when running it headless (e.g. in Termux).
 v1.1.0 - Device discovery and casting: find DLNA/UPnP renderers (smart TVs, AV receivers, streaming sticks) on your local network via SSDP, then send any item to one with "Play on device..." and control it with pause/resume/stop.
 v1.0.2 -Adaptive streaming (HLS/DASH via InputStream Adapter) with optional DRM and a quality picker; TTL response caching and network retries; skin widget endpoints and a Test Connection button.
