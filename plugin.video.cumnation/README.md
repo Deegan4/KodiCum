@@ -101,8 +101,13 @@ GET {base}/resolve?id={video_id}[&url={page_url}]
     # or multiple / adaptive / DRM-protected streams:
     -> {"streams": [<stream>, ...]}
 
-<video>  = {"id","title","url","thumb","plot","duration",
-            "date","rating","tags"}
+<video>  = {"id","title","url","thumb","preview","plot",
+            "duration","date","rating","tags"}
+
+ ``preview`` is an optional URL to a preview image (a still or
+ animated frame from the video). When present it is shown as
+ the listing's background image; ``thumb`` is always used for
+ the poster/thumbnail.
 
 <stream> = {"url",                       # required
             "quality",                   # vertical resolution, e.g. 1080

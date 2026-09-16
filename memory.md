@@ -46,6 +46,9 @@ source the user configures, and bundles no content or scrapers.
 - **Skin widgets + diagnostics (1.0.2):**
   `?action=widget&type=favorites|history|category`; a "Test connection"
   settings button; a "Clear content cache" action.
+- **Preview images (1.1.4):** videos may include an optional `preview`
+  field (URL to a still/animated frame). When present it is displayed
+  as the listing's fanart/background image; `thumb` remains the poster.
 
 ## Key decisions / conventions
 

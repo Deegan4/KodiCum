@@ -26,8 +26,13 @@ Expected JSON API shape (all endpoints relative to the configured base URL):
                  "manifest_type","mime_type","license_type","license_key"},
                 ...]}
 
-    where <video> = {"id","title","url","thumb","plot","duration",
-                     "date","rating","tags"}
+     where <video> = {"id","title","url","thumb","preview","plot",
+                      "duration","date","rating","tags"}
+
+     ``preview`` is an optional URL to a preview image (a still or
+     animated frame from the video content). When present it is shown
+     as the item's fanart/background image in listings; ``thumb`` is
+     always used for the poster/thumbnail.
 
     manifest_type is "hls" | "mpd" | "ism" for adaptive streams (played via
     InputStream Adapter); license_type/license_key carry optional DRM.

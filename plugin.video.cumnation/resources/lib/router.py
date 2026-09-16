@@ -87,7 +87,9 @@ class Router(object):
         art = {}
         if video.thumb:
             art.update({'thumb': video.thumb, 'poster': video.thumb,
-                        'icon': video.thumb, 'fanart': video.thumb})
+                        'icon': video.thumb})
+        if video.preview:
+            art['fanart'] = video.preview
         item.setArt(art)
 
         info = {'mediatype': 'video', 'title': video.title}

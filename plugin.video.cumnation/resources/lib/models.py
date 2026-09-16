@@ -44,12 +44,13 @@ class Category(object):
 class Video(object):
     """A playable item."""
 
-    def __init__(self, vid, title, url=None, thumb=None, plot=None,
-                 duration=None, date=None, rating=None, tags=None):
+    def __init__(self, vid, title, url=None, thumb=None, preview=None,
+                 plot=None, duration=None, date=None, rating=None, tags=None):
         self.id = vid
         self.title = title
         self.url = url
         self.thumb = thumb
+        self.preview = preview
         self.plot = plot
         self.duration = duration          # seconds
         self.date = date                  # 'dd.mm.yyyy'
@@ -57,7 +58,7 @@ class Video(object):
         self.tags = tags or []
 
     def to_dict(self):
-        return {
+        result = {
             'id': self.id,
             'title': self.title,
             'url': self.url,
@@ -68,6 +69,9 @@ class Video(object):
             'rating': self.rating,
             'tags': self.tags,
         }
+        if self.preview:
+            result['preview'] = self.preview
+        return result
 
     @classmethod
     def from_dict(cls, data):
@@ -76,6 +80,7 @@ class Video(object):
             title=data.get('title', ''),
             url=data.get('url'),
             thumb=data.get('thumb'),
+            preview=data.get('preview'),
             plot=data.get('plot'),
             duration=data.get('duration'),
             date=data.get('date'),

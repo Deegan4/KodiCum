@@ -62,14 +62,25 @@ class _FakeListItem(object):
         return self.tag
 
 
-def make_video(vid='v1', title='Test'):
-    return Video(vid=vid, title=title, url='http://x/v.mp4', duration=600)
+def make_video(vid='v1', title='Test', preview=None):
+    return Video(vid=vid, title=title, url='http://x/v.mp4', duration=600,
+                 preview=preview)
 
 
 class ModelTests(unittest.TestCase):
     def test_video_roundtrip(self):
         v = make_video()
         self.assertEqual(Video.from_dict(v.to_dict()).title, v.title)
+
+    def test_video_preview_roundtrip(self):
+        v = make_video(preview='http://h/preview.jpg')
+        d = v.to_dict()
+        self.assertEqual(d['preview'], 'http://h/preview.jpg')
+        self.assertEqual(Video.from_dict(d).preview, 'http://h/preview.jpg')
+
+    def test_video_preview_omitted_when_none(self):
+        v = make_video()
+        self.assertNotIn('preview', v.to_dict())
 
     def test_category_roundtrip(self):
         c = Category(cid='c1', name='Cat', count=5)
