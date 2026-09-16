@@ -145,6 +145,25 @@ class ResumeTests(unittest.TestCase):
         resume.set('v3', 590, 600)  # >95% watched
         self.assertEqual(resume.get('v3'), 0.0)
 
+    def test_clear_none_clears_all(self):
+        resume.set('v1', 120, 600)
+        resume.set('v2', 60, 600)
+        resume.clear(None)
+        self.assertEqual(resume.get('v1'), 0.0)
+        self.assertEqual(resume.get('v2'), 0.0)
+
+    def test_clear_empty_string_does_not_clear_all(self):
+        resume.set('v1', 120, 600)
+        resume.clear('')
+        self.assertAlmostEqual(resume.get('v1'), 120, delta=0.1)
+
+    def test_clear_specific_video(self):
+        resume.set('v1', 120, 600)
+        resume.set('v2', 60, 600)
+        resume.clear('v1')
+        self.assertEqual(resume.get('v1'), 0.0)
+        self.assertAlmostEqual(resume.get('v2'), 60, delta=0.1)
+
 
 class VideoInfoCompatTests(unittest.TestCase):
     """The version-safe metadata helper must pick the right Kodi API."""
@@ -232,6 +251,19 @@ class CacheTests(unittest.TestCase):
         cache.set('k', {'v': 1}, now=1000)
         kodiutils.set_setting('cache_ttl', '0')
         self.assertIsNone(cache.get('k', now=1000))
+
+    def test_max_entries_evicts_oldest(self):
+        cache.clear()
+        kodiutils.set_setting('cache_ttl', '60')
+        original = cache.MAX_ENTRIES
+        cache.MAX_ENTRIES = 3
+        try:
+            for i in range(5):
+                cache.set('key{0}'.format(i), i, now=1000 + i)
+            self.assertIsNotNone(cache.get('key4', now=1005))
+            self.assertIsNone(cache.get('key0', now=1005))
+        finally:
+            cache.MAX_ENTRIES = original
 
 
 NS = 'urn:schemas-upnp-org:device-1-0'
@@ -711,6 +743,31 @@ class RendererServiceTypeTests(unittest.TestCase):
         r = Renderer.from_dict({'udn': 'u', 'name': 'Old TV'})
         self.assertEqual(r.service_type,
                          'urn:schemas-upnp-org:service:AVTransport:1')
+
+
+class RouterArgTests(unittest.TestCase):
+    def _make_router(self, query):
+        import sys
+        if 'requests' not in sys.modules:
+            sys.modules['requests'] = type(sys)('requests')
+        from resources.lib import router as r
+        return r.Router(['', '0', query])
+
+    def test_int_arg_returns_int(self):
+        r = self._make_router('?page=3')
+        self.assertEqual(r._int_arg('page', 1), 3)
+
+    def test_int_arg_default_on_missing(self):
+        r = self._make_router('')
+        self.assertEqual(r._int_arg('page', 1), 1)
+
+    def test_int_arg_default_on_bad_input(self):
+        r = self._make_router('?page=abc')
+        self.assertEqual(r._int_arg('page', 1), 1)
+
+    def test_int_arg_zero_default(self):
+        r = self._make_router('?page=abc')
+        self.assertEqual(r._int_arg('page'), 0)
 
 
 if __name__ == '__main__':

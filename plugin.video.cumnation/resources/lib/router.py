@@ -7,10 +7,11 @@ handler methods, builds Kodi directory listings, and drives playback.
 import json
 
 try:
-    from urllib.parse import urlencode, parse_qsl
+    from urllib.parse import urlencode, parse_qsl, quote
 except ImportError:  # pragma: no cover - Python 2 fallback
     from urllib import urlencode
     from urlparse import parse_qsl
+    from urllib import quote
 
 import xbmcgui
 import xbmcplugin
@@ -57,6 +58,17 @@ class Router(object):
         except ContentError as exc:
             kodiutils.notify(str(exc), icon=xbmcgui.NOTIFICATION_ERROR)
             xbmcplugin.endOfDirectory(self.handle, succeeded=False)
+        except Exception as exc:
+            kodiutils.log_error('Unexpected error in {0}: {1}'.format(
+                self.args.get('action', '?'), exc))
+            kodiutils.notify('An error occurred', icon=xbmcgui.NOTIFICATION_ERROR)
+            xbmcplugin.endOfDirectory(self.handle, succeeded=False)
+
+    def _int_arg(self, key, default=0):
+        try:
+            return int(self.args.get(key, default))
+        except (TypeError, ValueError):
+            return default
 
     def _end(self, content='videos', sort=True):
         xbmcplugin.setContent(self.handle, content)
@@ -174,7 +186,7 @@ class Router(object):
 
     def action_list(self):
         category = self.args.get('category', '')
-        page = int(self.args.get('page', 1))
+        page = self._int_arg('page', 1)
         result = self.source.list_videos(category, page)
         for video in result.items:
             self._add_video(video)
@@ -209,7 +221,7 @@ class Router(object):
 
     def action_do_search(self):
         query = self.args.get('q', '')
-        page = int(self.args.get('page', 1))
+        page = self._int_arg('page', 1)
         self._do_search(query, page)
 
     def _do_search(self, query, page):
@@ -272,7 +284,8 @@ class Router(object):
             kodiutils.refresh_container()
 
     def action_clear_resume(self):
-        resume.clear(self.args.get('video_id', ''))
+        video_id = self.args.get('video_id', '')
+        resume.clear(None if not video_id else video_id)
         kodiutils.refresh_container()
 
     # -- actions: playback ------------------------------------------------
@@ -310,8 +323,10 @@ class Router(object):
                 play_item.setContentLookup(False)
         else:
             if stream.headers:
-                path = path + '|' + '&'.join(
-                    '{0}={1}'.format(k, v) for k, v in stream.headers.items())
+                hdr = '&'.join(
+                    '{0}={1}'.format(k, quote(v))
+                    for k, v in stream.headers.items())
+                path = path + '|' + hdr
             play_item.setPath(path)
 
     def action_play(self):

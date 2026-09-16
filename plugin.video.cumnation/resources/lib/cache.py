@@ -12,6 +12,7 @@ from . import storage
 from . import kodiutils
 
 STORE = 'http_cache.json'
+MAX_ENTRIES = 500
 
 
 def ttl_seconds():
@@ -44,6 +45,10 @@ def set(key, value, now=None):
         return
     data = _load()
     data[key] = {'ts': time.time() if now is None else now, 'value': value}
+    if len(data) > MAX_ENTRIES:
+        sorted_keys = sorted(data, key=lambda k: data[k]['ts'])
+        for k in sorted_keys[:len(data) - MAX_ENTRIES]:
+            data.pop(k, None)
     storage.save(STORE, data)
 
 

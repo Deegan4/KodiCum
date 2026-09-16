@@ -38,11 +38,17 @@ def load(name, default=None):
 
 
 def save(name, data):
-    """Write data as JSON to the profile dir. Returns True on success."""
+    """Write data as JSON to the profile dir. Returns True on success.
+
+    Writes to a temporary file first and renames it into place so a
+    crash mid-write cannot leave the JSON file partially written.
+    """
     path = _path(name)
+    tmp = path + '.tmp'
     try:
-        with xbmcvfs.File(path, 'w') as handle:
+        with xbmcvfs.File(tmp, 'w') as handle:
             handle.write(json.dumps(data, ensure_ascii=False, indent=2))
+        xbmcvfs.rename(tmp, path)
         return True
     except (TypeError, IOError) as exc:
         kodiutils.log_error('Failed to save {0}: {1}'.format(name, exc))

@@ -105,6 +105,7 @@ def install():
     xbmcvfs.exists = os.path.exists
     xbmcvfs.mkdirs = lambda p: os.makedirs(p, exist_ok=True)
     xbmcvfs.File = _File
+    xbmcvfs.rename = lambda src, dst: os.rename(src, dst)
 
     xbmcplugin = type(sys)('xbmcplugin')
 
