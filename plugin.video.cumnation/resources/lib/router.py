@@ -23,6 +23,8 @@ from . import resume
 from . import cache
 from . import dlna
 from . import cast
+from . import trakt
+from . import sources
 from .content import ContentSource, ContentError
 from .models import Video, Renderer, select_stream
 from .player import ResumePlayer
@@ -129,6 +131,11 @@ class Router(object):
                 item.setProperty('ResumeTime', str(pos))
                 if video.duration:
                     item.setProperty('TotalTime', str(video.duration))
+                    item.setProperty('Progress',
+                        '{0:.0f}'.format(pos / video.duration * 100))
+                    item.setProperty('ResumeLabel',
+                        'Resumed at {0:.0f}%'.format(
+                            pos / video.duration * 100))
 
         item.addContextMenuItems(self._video_context(video, context_extra))
 
@@ -172,6 +179,8 @@ class Router(object):
                           plot=S(32061))
         self._add_dir(S(32018), self.url_for(action='open_settings'),
                       plot=S(32019))
+        self._add_dir(S(32168), self.url_for(action='switch_source'),
+                      plot=S(32169))
         self._end(content='files', sort=False)
 
     def action_categories(self):
@@ -328,6 +337,8 @@ class Router(object):
                     for k, v in stream.headers.items())
                 path = path + '|' + hdr
             play_item.setPath(path)
+        if stream.subtitle:
+            play_item.setSubtitles([stream.subtitle])
 
     def action_play(self):
         video_id = self.args.get('video_id', '')
@@ -362,9 +373,12 @@ class Router(object):
         history.add_watched(video)
         xbmcplugin.setResolvedUrl(self.handle, True, play_item)
 
+        # Signal Trakt that playback started.
+        trakt.scrobble_start(video)
+
         # Track the resume point for next time.
         if resume.enabled() and video_id:
-            ResumePlayer(video_id).run()
+            ResumePlayer(video_id, video).run()
 
     # -- actions: maintenance / diagnostics -------------------------------
     def action_test_connection(self):
@@ -537,6 +551,23 @@ class Router(object):
         for video in videos:
             self._add_video(video)
         self._end()
+
+    def action_switch_source(self):
+        sources = sources.all_sources()
+        if not sources:
+            kodiutils.notify(S(32171))
+            return
+        labels = ['{0}'.format(s.get('name', s.get('id')))
+                  for s in sources]
+        active = sources.active_source().get('id')
+        idx = next((i for i, s in enumerate(sources)
+                    if s.get('id') == active), -1)
+        choice = kodiutils.select(S(32169), labels)
+        if choice >= 0:
+            sources.set_active(sources[choice].get('id'))
+            kodiutils.notify(S(32172).format(
+                sources[choice].get('name', '')))
+            kodiutils.refresh_container()
 
     def action_open_settings(self):
         kodiutils.open_settings()

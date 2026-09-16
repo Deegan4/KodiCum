@@ -132,10 +132,36 @@
                     </constraints>
                     <control type="spinner" format="integer"/>
                 </setting>
+                <setting id="subtitle_language" type="string" label="32166" help="32167">
+                    <level>1</level>
+                    <default></default>
+                    <control type="edit" format="string">
+                        <heading>32166</heading>
+                    </control>
+                </setting>
                 <setting id="resume_playback" type="boolean" label="32111" help="32112">
                     <level>0</level>
                     <default>true</default>
                     <control type="toggle"/>
+                </setting>
+                <setting id="trakt_enabled" type="boolean" label="32160" help="32161">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="trakt_username" type="string" label="32162" help="32163">
+                    <level>1</level>
+                    <default></default>
+                    <control type="edit" format="string">
+                        <heading>32162</heading>
+                    </control>
+                </setting>
+                <setting id="trakt_api_token" type="string" label="32164" help="32165">
+                    <level>1</level>
+                    <default></default>
+                    <control type="edit" format="string">
+                        <heading>32164</heading>
+                    </control>
                 </setting>
                 <setting id="track_history" type="boolean" label="32113" help="32114">
                     <level>0</level>

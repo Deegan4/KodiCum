@@ -51,6 +51,7 @@ import requests
 
 from . import kodiutils
 from . import cache
+from . import sources
 from .models import Category, Video, Page, Stream
 
 DEFAULT_TIMEOUT = 20
@@ -62,7 +63,7 @@ class ContentError(Exception):
 
 class ContentSource(object):
     def __init__(self):
-        self.base_url = kodiutils.get_setting('base_url').rstrip('/')
+        self.base_url = sources.active_url().rstrip('/')
         self.page_size = kodiutils.get_setting_int('page_size', 30)
         self.retries = max(0, kodiutils.get_setting_int('network_retries', 2))
         self.session = requests.Session()

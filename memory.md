@@ -19,12 +19,12 @@ source the user configures, and bundles no content or scrapers.
 
 ## Current state
 
-- **Add-on version:** `1.1.4` (`plugin.video.cumnation/addon.xml`).
+- **Add-on version:** `1.1.5` (`plugin.video.cumnation/addon.xml`).
 - **Repository add-on version:** `1.0.0` (`repository.cumnation/addon.xml`).
 - **Branch/PR:** work happens on `claude/session-0pl4np` and is pushed to both
   that branch and `main`. PR #1 was merged. Development continues by pushing
   to `main` directly (per user instruction "push to main").
-- **Tests:** 81 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
+- **Tests:** 99 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
 - **CI:** `.github/workflows/ci.yml` runs compile + XML validation + tests +
   repo rebuild on Python 3.9/3.11/3.12.
 
@@ -52,6 +52,16 @@ source the user configures, and bundles no content or scrapers.
 - **Preview images (1.1.4):** videos may include an optional `preview`
   field (URL to a still/animated frame). When present it is displayed
   as the listing's fanart/background image; `thumb` remains the poster.
+- **Resume badges (1.1.5):** partially-watched videos show a progress
+  label (percentage) via `Progress` and `ResumeLabel` ListItem properties.
+- **Trakt scrobbling (1.1.5):** track watch progress on Trakt.tv
+  (`trakt_enabled`, `trakt_username`, `trakt_api_token` settings;
+  `trakt_id`/`trakt_type` on videos).
+- **Subtitle support (1.1.5):** streams may include a `subtitle` URL
+  passed to Kodi via `ListItem.setSubtitles()`.
+- **Content source switcher (1.1.5):** multiple sources managed via
+  `sources.json`, switchable from the root menu.
+- **Cache size limit (1.1.5):** `MAX_ENTRIES = 500` with oldest-eviction.
 
 ## Key decisions / conventions
 

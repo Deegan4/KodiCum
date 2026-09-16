@@ -45,7 +45,8 @@ class Video(object):
     """A playable item."""
 
     def __init__(self, vid, title, url=None, thumb=None, preview=None,
-                 plot=None, duration=None, date=None, rating=None, tags=None):
+                 plot=None, duration=None, date=None, rating=None, tags=None,
+                 trakt_id=None, trakt_type=None):
         self.id = vid
         self.title = title
         self.url = url
@@ -56,6 +57,8 @@ class Video(object):
         self.date = date                  # 'dd.mm.yyyy'
         self.rating = rating              # float 0-10
         self.tags = tags or []
+        self.trakt_id = trakt_id          # optional Trakt.tv ID
+        self.trakt_type = trakt_type      # 'movie' or 'show', if trakt_id set
 
     def to_dict(self):
         result = {
@@ -71,6 +74,10 @@ class Video(object):
         }
         if self.preview:
             result['preview'] = self.preview
+        if self.trakt_id:
+            result['trakt_id'] = self.trakt_id
+        if self.trakt_type:
+            result['trakt_type'] = self.trakt_type
         return result
 
     @classmethod
@@ -86,6 +93,8 @@ class Video(object):
             date=data.get('date'),
             rating=data.get('rating'),
             tags=data.get('tags') or [],
+            trakt_id=data.get('trakt_id'),
+            trakt_type=data.get('trakt_type'),
         )
 
 
@@ -99,7 +108,8 @@ class Stream(object):
 
     def __init__(self, url, quality=0, label=None, headers=None,
                  manifest_type=None, mime_type=None,
-                 license_type=None, license_key=None):
+                 license_type=None, license_key=None,
+                 subtitle=None):
         self.url = url
         self.quality = int(quality or 0)     # vertical resolution, e.g. 1080
         self.label = label
@@ -108,6 +118,22 @@ class Stream(object):
         self.mime_type = mime_type
         self.license_type = license_type     # e.g. 'com.widevine.alpha'
         self.license_key = license_key
+        self.subtitle = subtitle            # optional subtitle URL
+
+    def to_dict(self):
+        result = {
+            'url': self.url,
+            'quality': self.quality,
+            'label': self.label,
+            'headers': self.headers,
+            'manifest_type': self.manifest_type,
+            'mime_type': self.mime_type,
+            'license_type': self.license_type,
+            'license_key': self.license_key,
+        }
+        if self.subtitle:
+            result['subtitle'] = self.subtitle
+        return result
 
     @property
     def is_adaptive(self):
@@ -132,6 +158,7 @@ class Stream(object):
             mime_type=data.get('mime_type'),
             license_type=data.get('license_type'),
             license_key=data.get('license_key'),
+            subtitle=data.get('subtitle'),
         )
 
 

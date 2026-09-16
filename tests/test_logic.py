@@ -19,7 +19,8 @@ ADDON_ROOT = os.path.join(os.path.dirname(__file__), '..', 'plugin.video.cumnati
 sys.path.insert(0, os.path.abspath(ADDON_ROOT))
 
 from resources.lib import (  # noqa: E402
-    favorites, history, resume, kodiutils, cache, dlna, cast)
+    favorites, history, resume, kodiutils, cache, dlna, cast,
+    sources, trakt)
 from resources.lib.models import (  # noqa: E402
     Video, Category, Page, Stream, Renderer, select_stream)
 
@@ -768,6 +769,74 @@ class RouterArgTests(unittest.TestCase):
     def test_int_arg_zero_default(self):
         r = self._make_router('?page=abc')
         self.assertEqual(r._int_arg('page'), 0)
+
+
+class StreamSubtitleTests(unittest.TestCase):
+    def test_subtitle_optional(self):
+        s = Stream('http://x/v.mp4')
+        self.assertIsNone(s.subtitle)
+
+    def test_subtitle_stored(self):
+        s = Stream('http://x/v.mp4', subtitle='http://x/sub.en.vtt')
+        self.assertEqual(s.subtitle, 'http://x/sub.en.vtt')
+
+    def test_subtitle_roundtrip(self):
+        s = Stream('http://x/v.mp4', subtitle='http://x/sub.en.vtt')
+        d = s.to_dict()
+        self.assertIn('subtitle', d)
+        self.assertEqual(Stream.from_dict(d).subtitle,
+                         'http://x/sub.en.vtt')
+
+
+class SourceTests(unittest.TestCase):
+    def setUp(self):
+        sources.clear()
+        kodiutils.set_setting('trakt_enabled', 'false')
+
+    def test_default_source(self):
+        src = sources.active_source()
+        self.assertEqual(src['id'], 'default')
+        self.assertEqual(src['name'], 'Content Source')
+
+    def test_switch_source(self):
+        sources.add_source('Source A', 'http://a/api')
+        sources.add_source('Source B', 'http://b/api')
+        sources.set_active('source1')
+        self.assertEqual(sources.active_source()['name'], 'Source A')
+
+    def test_active_url(self):
+        sources.add_source('My Source', 'http://my/api')
+        self.assertEqual(sources.active_url(), 'http://my/api')
+
+    def test_remove_source_switches_active(self):
+        sources.add_source('A', 'http://a')
+        sources.add_source('B', 'http://b')
+        sources.set_active('source1')
+        sources.remove_source('source1')
+        self.assertEqual(sources.active_source()['id'], 'default')
+
+
+class TraktTests(unittest.TestCase):
+    def setUp(self):
+        sources.clear()
+        kodiutils.set_setting('trakt_enabled', 'false')
+
+    def test_disabled_by_default(self):
+        self.assertFalse(trakt.enabled())
+
+    def test_no_scrobble_when_disabled(self):
+        v = Video(vid='v1', title='Test', trakt_id='123',
+                  trakt_type='movie')
+        trakt.scrobble_start(v)
+        trakt.scrobble_stop(v, 30)
+        trakt.scrobble_complete(v)
+
+    def test_no_scrobble_without_trakt_id(self):
+        kodiutils.set_setting('trakt_enabled', 'true')
+        v = Video(vid='v1', title='Test')
+        trakt.scrobble_start(v)
+        trakt.scrobble_stop(v, 30)
+        trakt.scrobble_complete(v)
 
 
 if __name__ == '__main__':

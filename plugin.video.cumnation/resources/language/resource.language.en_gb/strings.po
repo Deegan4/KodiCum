@@ -273,6 +273,61 @@ msgctxt "#32114"
 msgid "Keep a list of recently watched items"
 msgstr ""
 
+# --- Settings: Trakt ---------------------------------------------------
+msgctxt "#32160"
+msgid "Trakt scrobbling"
+msgstr ""
+
+msgctxt "#32161"
+msgid "Track watch progress on Trakt.tv across devices"
+msgstr ""
+
+msgctxt "#32162"
+msgid "Trakt username"
+msgstr ""
+
+msgctxt "#32163"
+msgid "Your Trakt.tv username"
+msgstr ""
+
+msgctxt "#32164"
+msgid "Trakt API token"
+msgstr ""
+
+msgctxt "#32165"
+msgid "Bearer token for the Trakt API"
+msgstr ""
+
+# --- Settings: Subtitles ----------------------------------------------
+msgctxt "#32166"
+msgid "Preferred subtitle language"
+msgstr ""
+
+msgctxt "#32167"
+msgid "Language code for subtitle streams (e.g. eng, fre). Empty = any."
+msgstr ""
+
+# --- Content sources -------------------------------------------------
+msgctxt "#32168"
+msgid "Switch source"
+msgstr ""
+
+msgctxt "#32169"
+msgid "Choose a content source"
+msgstr ""
+
+msgctxt "#32170"
+msgid "Switched to {0}"
+msgstr ""
+
+msgctxt "#32171"
+msgid "No sources configured"
+msgstr ""
+
+msgctxt "#32172"
+msgid "Content source changed"
+msgstr ""
+
 msgctxt "#32115"
 msgid "History size"
 msgstr ""

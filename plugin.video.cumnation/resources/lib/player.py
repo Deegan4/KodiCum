@@ -9,12 +9,14 @@ import xbmc
 
 from . import resume
 from . import kodiutils
+from . import trakt
 
 
 class ResumePlayer(xbmc.Player):
-    def __init__(self, video_id):
+    def __init__(self, video_id, video=None):
         super(ResumePlayer, self).__init__()
         self.video_id = video_id
+        self.video = video
         self._last_position = 0.0
         self._total = 0.0
         self._stopped = False
@@ -45,6 +47,11 @@ class ResumePlayer(xbmc.Player):
             resume.set(self.video_id, self._last_position, self._total)
             kodiutils.log('Saved resume point {0:.0f}s for {1}'.format(
                 self._last_position, self.video_id))
+            if trakt.enabled() and self.video:
+                if self._last_position >= self._total * 0.95:
+                    trakt.scrobble_complete(self.video)
+                else:
+                    trakt.scrobble_stop(self.video, self._last_position)
 
     def onPlayBackStopped(self):
         self._stopped = True

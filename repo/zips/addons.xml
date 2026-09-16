@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-    <addon id="plugin.video.cumnation" name="Cumnation" version="1.1.4" provider-name="KodiCum">
+    <addon id="plugin.video.cumnation" name="Cumnation" version="1.1.5" provider-name="KodiCum">
         <requires>
             <import addon="xbmc.python" version="3.0.0" />
             <import addon="script.module.requests" version="2.22.0" />
@@ -18,11 +18,17 @@
                 <icon>resources/media/icon.png</icon>
                 <fanart>resources/media/fanart.jpg</fanart>
             </assets>
-            <news>v1.1.4 - Preview images: videos may now include an optional
+            <news>v1.1.5 - Five features added: resume badges with progress
+percentage in video listings (Progress, ResumeLabel properties);
+Trakt.tv scrobbling to track watch progress across devices (trakt_id
+on videos, trakt_enabled/username/token settings); subtitle URL
+passing on streams (subtitle field on Stream, setSubtitles);
+watch progress percentage in listings; and a content source
+switcher (multiple sources in sources.json, Switch source action).
+v1.1.4 - Preview images: videos may now include an optional
 "preview" URL (a still or animated frame). When provided it is shown
 as the listing's fanart/background image so the video content is
-identifiable at a glance; "thumb" remains the poster thumbnail.
-v1.1.3 - Docs only: README notes that tools/termux_bootstrap.sh now installs a Termux:Boot autostart hook, so the reference backend and sshd survive a device reboot without reopening Termux.</news>
+identifiable at a glance; "thumb" remains the poster thumbnail.</news>
         </extension>
     </addon>
     <addon id="repository.cumnation" name="Cumnation Repository" version="1.0.0" provider-name="KodiCum">
