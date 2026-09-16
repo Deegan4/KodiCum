@@ -19,12 +19,12 @@ source the user configures, and bundles no content or scrapers.
 
 ## Current state
 
-- **Add-on version:** `1.0.2` (`plugin.video.cumnation/addon.xml`).
+- **Add-on version:** `1.1.4` (`plugin.video.cumnation/addon.xml`).
 - **Repository add-on version:** `1.0.0` (`repository.cumnation/addon.xml`).
 - **Branch/PR:** work happens on `claude/session-0pl4np` and is pushed to both
   that branch and `main`. PR #1 was merged. Development continues by pushing
   to `main` directly (per user instruction "push to main").
-- **Tests:** 23 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
+- **Tests:** 81 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
 - **CI:** `.github/workflows/ci.yml` runs compile + XML validation + tests +
   repo rebuild on Python 3.9/3.11/3.12.
 
@@ -43,6 +43,9 @@ source the user configures, and bundles no content or scrapers.
   (`models.select_stream`).
 - **Caching + retry (1.0.2):** `cache.py` TTL cache over categories/listings;
   `ContentSource._request` retries transient failures with backoff.
+- **Preview images (1.1.4):** videos may include an optional `preview`
+  field (URL to a still/animated frame). When present it is displayed
+  as the listing's fanart/background image; `thumb` remains the poster.
 - **Skin widgets + diagnostics (1.0.2):**
   `?action=widget&type=favorites|history|category`; a "Test connection"
   settings button; a "Clear content cache" action.
