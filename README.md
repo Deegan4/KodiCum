@@ -20,10 +20,15 @@ auto-update the add-on. In Kodi:
 2. **Settings → File manager → Add source** and enter this URL:
 
    ```
-   https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/
+   https://deegan4.github.io/KodiCum/
    ```
 
    Give it a name such as `Cumnation` and select **OK**.
+
+   > Don't use a `raw.githubusercontent.com` URL here. Raw GitHub can't list
+   > directories, so Kodi fails with *"Couldn't retrieve directory
+   > information… network not connected"*. The GitHub Pages URL above serves
+   > the browsable listings Kodi needs.
 3. **Settings → Add-ons → Install from zip file** → pick the source you just
    added → `repository.cumnation` → `repository.cumnation-1.0.0.zip`.
 4. **Install from repository → Cumnation Repository → Video add-ons →
@@ -32,6 +37,19 @@ auto-update the add-on. In Kodi:
    source (see the [add-on README](plugin.video.cumnation/README.md)).
 
 From then on Kodi keeps the add-on updated from this repository automatically.
+
+### Publishing the source (one-time)
+
+The source URL is served by GitHub Pages via
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml), which publishes
+`repo/zips/` on every push to `main`. Enable it once under **Settings → Pages →
+Build and deployment → Source: GitHub Actions**, then re-run the *Publish Kodi
+source* workflow (or push to `main`).
+
+If Kodi still says it couldn't retrieve directory information, open
+`https://deegan4.github.io/KodiCum/` in a browser first — if that doesn't show
+a file listing, Pages isn't enabled yet. If it does, check the Kodi device's
+own network connection and that the URL was typed exactly.
 
 ### Rebuilding the repository
 

@@ -7,6 +7,7 @@
 
 ```
 zips/
+├── index.html                # directory listing Kodi's "Add source" browses
 ├── addons.xml                # merged index of all add-ons
 ├── addons.xml.md5            # checksum Kodi verifies before downloading
 ├── plugin.video.cumnation/
@@ -20,6 +21,10 @@ To regenerate after changing an add-on or bumping its version:
 ```bash
 python3 tools/build_repo.py
 ```
+
+`zips/` is also published to GitHub Pages (`.github/workflows/pages.yml`) as
+the File manager source `https://deegan4.github.io/KodiCum/` — raw GitHub URLs
+can't list directories, so they don't work as a Kodi source.
 
 See the top-level [README](../README.md) for how to add this repository as a
 source in Kodi.

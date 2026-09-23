@@ -98,6 +98,11 @@ before the add-on is imported.
   repository add-on (`repository.cumnation/addon.xml`) hardcodes
   `raw.githubusercontent.com/Deegan4/KodiCum/main/...`, so the datadir must
   stay on `main`.
+- **The File manager source is GitHub Pages, not raw GitHub.** Raw URLs 404 on
+  directories, so Kodi can't browse them ("Couldn't retrieve directory
+  information"). `build_repo.py` writes an `index.html` listing into every
+  `repo/zips/` directory and `.github/workflows/pages.yml` publishes
+  `repo/zips/` to `https://deegan4.github.io/KodiCum/`.
 - **User-facing strings** live in
   `resources/language/resource.language.en_gb/strings.po` and are referenced by
   numeric id via `kodiutils.get_string()` (aliased `S` in the router). Add a
