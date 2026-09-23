@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.cumnation"
        name="Cumnation"
-       version="1.1.6"
+       version="1.1.7"
        provider-name="KodiCum">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
@@ -20,7 +20,17 @@
             <icon>resources/media/icon.png</icon>
             <fanart>resources/media/fanart.jpg</fanart>
         </assets>
-        <news>v1.1.6 - Fixed the Settings -> Base API URL field, which was
+        <news>v1.1.7 - Manage sources: add/rename/remove/switch named content
+sources (each optionally static) from a new root-menu screen, not just
+switch between already-configured ones. Fixed rename_source silently
+never persisting. Multiple subtitle tracks: a stream can carry one URL
+per language (subtitles list), not just a single subtitle URL. Static
+sources can now search (an optional pre-baked search-index.json,
+fetched once and filtered client-side). New tools/build_static_source.py
+turns a folder of your own videos into a static source -- no server, no
+account. repo/zips/**/*.zip rebuilds are now byte-identical when
+nothing changed (no more every-rebuild zip churn in diffs).
+v1.1.6 - Fixed the Settings -> Base API URL field, which was
 silently disconnected from every request (any source you typed there
 was ignored; only a source added via the multi-source manager ever
 worked). Fixed the Switch source menu item crashing on every use.

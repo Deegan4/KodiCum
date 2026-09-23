@@ -174,16 +174,38 @@ class ContentSource(object):
 
     def search(self, query, page=1):
         if self.static:
-            # A plain file host can't run a search query; there is no file
-            # to fetch for arbitrary text. Fail soft with an empty result
-            # rather than raising, since this is an expected limitation
-            # rather than a misconfiguration.
-            return Page([], page=1, has_next=False)
+            return self._static_search(query, page)
         params = {'q': query, 'page': page, 'limit': self.page_size}
         data = self._get('search', params)
         videos = [Video.from_dict(item) for item in data.get('videos', [])]
         return Page(videos, page=data.get('page', page),
                     has_next=bool(data.get('has_next')))
+
+    def _static_search(self, query, page):
+        """Search a static source's optional pre-baked search-index.json.
+
+        A plain file host has no server-side logic to run a search query
+        against, so this fetches the *whole* catalogue once (cached) and
+        filters client-side by title, mirroring mock_server.py's own
+        (title-only) matching so behaviour matches a dynamic source. A
+        static source that doesn't publish this file (older, or
+        hand-authored without one) degrades to no results rather than an
+        error, since that's a missing optional feature, not a
+        misconfiguration.
+        """
+        try:
+            data = self._get_static('search-index.json', cacheable=True)
+        except ContentError:
+            return Page([], page=1, has_next=False)
+
+        term = (query or '').lower()
+        matches = [item for item in data.get('videos', [])
+                  if term in (item.get('title') or '').lower()]
+
+        start = (page - 1) * self.page_size
+        end = start + self.page_size
+        videos = [Video.from_dict(item) for item in matches[start:end]]
+        return Page(videos, page=page, has_next=end < len(matches))
 
     def resolve(self, video_id, video_url=None):
         """Return a non-empty list of Stream objects for a playable item.
@@ -207,7 +229,9 @@ class ContentSource(object):
                               manifest_type=data.get('manifest_type'),
                               mime_type=data.get('mime_type'),
                               license_type=data.get('license_type'),
-                              license_key=data.get('license_key'))]
+                              license_key=data.get('license_key'),
+                              subtitle=data.get('subtitle'),
+                              subtitles=data.get('subtitles'))]
 
         if not streams:
             raise ContentError('No playable stream returned')

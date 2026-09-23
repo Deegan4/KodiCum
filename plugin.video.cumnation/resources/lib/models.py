@@ -109,7 +109,7 @@ class Stream(object):
     def __init__(self, url, quality=0, label=None, headers=None,
                  manifest_type=None, mime_type=None,
                  license_type=None, license_key=None,
-                 subtitle=None):
+                 subtitle=None, subtitles=None):
         self.url = url
         self.quality = int(quality or 0)     # vertical resolution, e.g. 1080
         self.label = label
@@ -118,7 +118,21 @@ class Stream(object):
         self.mime_type = mime_type
         self.license_type = license_type     # e.g. 'com.widevine.alpha'
         self.license_key = license_key
-        self.subtitle = subtitle            # optional subtitle URL
+        self.subtitle = subtitle            # optional single subtitle URL (legacy)
+        # Optional multiple subtitle tracks, e.g. one per language. Each item
+        # is either a plain URL string or {"url", "language"}; "language" is
+        # metadata only (Kodi has no separate parameter for it - name the
+        # file with a language code, e.g. "movie.en.vtt", and Kodi's own
+        # subtitle picker reads it from the filename).
+        self.subtitles = list(subtitles) if subtitles else []
+
+    @property
+    def all_subtitle_urls(self):
+        """Every subtitle URL for this stream, ``subtitles`` then ``subtitle``."""
+        urls = [s['url'] if isinstance(s, dict) else s for s in self.subtitles]
+        if self.subtitle and self.subtitle not in urls:
+            urls.append(self.subtitle)
+        return urls
 
     def to_dict(self):
         result = {
@@ -133,6 +147,8 @@ class Stream(object):
         }
         if self.subtitle:
             result['subtitle'] = self.subtitle
+        if self.subtitles:
+            result['subtitles'] = self.subtitles
         return result
 
     @property
@@ -159,6 +175,7 @@ class Stream(object):
             license_type=data.get('license_type'),
             license_key=data.get('license_key'),
             subtitle=data.get('subtitle'),
+            subtitles=data.get('subtitles'),
         )
 
 

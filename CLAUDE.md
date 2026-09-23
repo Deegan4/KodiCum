@@ -112,9 +112,11 @@ before the add-on is imported.
   because Kodi fetches them over raw GitHub URLs.
 - **Bumping a version means editing `addon.xml` then rerunning
   `build_repo.py`** so `addons.xml` and `addons.xml.md5` regenerate. The
-  repository add-on (`repository.cumnation/addon.xml`) hardcodes
-  `raw.githubusercontent.com/Deegan4/KodiCum/main/...`, so the datadir must
-  stay on `main`.
+  repository add-on (`repository.cumnation/addon.xml`) hardcodes its
+  update URLs to `https://deegan4.github.io/KodiCum/` (GitHub Pages, since
+  v1.0.1) — that tree is still published from `repo/zips/` on `main` (via
+  `.github/workflows/pages.yml`), so `main` still can't be abandoned
+  without repointing Pages first.
 - **The File manager source is GitHub Pages, not raw GitHub.** Raw URLs 404 on
   directories, so Kodi can't browse them ("Couldn't retrieve directory
   information"). `build_repo.py` writes an `index.html` listing into every
@@ -139,4 +141,7 @@ before the add-on is imported.
 - `repository.cumnation/` — the Kodi repository add-on (pointers only)
 - `repo/` — generated distributable repository (zips + `addons.xml` + md5)
 - `tools/build_repo.py` — packages the two add-ons into `repo/`
+- `tools/build_static_demo.py` — bakes the demo catalogue into a static source
+- `tools/build_static_source.py` — same, for a folder of your own videos
+- `tools/verify_addons_md5.py` — checks an `addons.xml` against its `.md5`
 - `tests/` — `unittest` suite + Kodi stubs

@@ -181,6 +181,7 @@ class Router(object):
                       plot=S(32019))
         self._add_dir(S(32168), self.url_for(action='switch_source'),
                       plot=S(32169))
+        self._add_dir(S(32175), self.url_for(action='manage_sources'))
         self._end(content='files', sort=False)
 
     def action_categories(self):
@@ -337,8 +338,9 @@ class Router(object):
                     for k, v in stream.headers.items())
                 path = path + '|' + hdr
             play_item.setPath(path)
-        if stream.subtitle:
-            play_item.setSubtitles([stream.subtitle])
+        urls = stream.all_subtitle_urls
+        if urls:
+            play_item.setSubtitles(urls)
 
     def action_play(self):
         video_id = self.args.get('video_id', '')
@@ -562,8 +564,76 @@ class Router(object):
         choice = kodiutils.select(S(32169), labels)
         if choice >= 0:
             sources.set_active(src_list[choice].get('id'))
-            kodiutils.notify(S(32172).format(
+            kodiutils.notify(S(32170).format(
                 src_list[choice].get('name', '')))
+            kodiutils.refresh_container()
+
+    def action_manage_sources(self):
+        active_id = sources.active_source().get('id')
+        for s in sources.all_sources():
+            sid = s.get('id', '')
+            name = s.get('name', sid)
+            kind = S(32190) if s.get('static') else S(32191)
+            label = '{0} [{1}]{2}'.format(
+                name, kind, ' *' if sid == active_id else '')
+            context = [
+                (S(32180), 'RunPlugin({0})'.format(
+                    self.url_for(action='rename_source', source_id=sid))),
+                (S(32182), 'RunPlugin({0})'.format(
+                    self.url_for(action='toggle_source_static', source_id=sid))),
+                (S(32181), 'RunPlugin({0})'.format(
+                    self.url_for(action='remove_source', source_id=sid))),
+            ]
+            self._add_dir(label, self.url_for(action='switch_to_source', source_id=sid),
+                          plot=s.get('url', ''), context=context)
+        self._add_dir(S(32176), self.url_for(action='add_source'))
+        self._end(content='files', sort=False)
+
+    def action_switch_to_source(self):
+        source_id = self.args.get('source_id', '')
+        for s in sources.all_sources():
+            if s.get('id') == source_id:
+                sources.set_active(source_id)
+                kodiutils.notify(S(32170).format(s.get('name', '')))
+                kodiutils.refresh_container()
+                return
+
+    def action_add_source(self):
+        name = kodiutils.keyboard(S(32177))
+        if not name:
+            return
+        url = kodiutils.keyboard(S(32178))
+        if not url:
+            return
+        static = kodiutils.yesno_dialog(S(32179))
+        sources.add_source(name, url, static=static)
+        kodiutils.notify(S(32184))
+        kodiutils.refresh_container()
+
+    def action_rename_source(self):
+        source_id = self.args.get('source_id', '')
+        name = kodiutils.keyboard(S(32189))
+        if not name:
+            return
+        sources.rename_source(source_id, name)
+        kodiutils.notify(S(32186))
+        kodiutils.refresh_container()
+
+    def action_toggle_source_static(self):
+        source_id = self.args.get('source_id', '')
+        for s in sources.all_sources():
+            if s.get('id') == source_id:
+                now_static = not s.get('static', False)
+                sources.set_static(source_id, now_static)
+                kodiutils.notify(S(32187) if now_static else S(32188))
+                kodiutils.refresh_container()
+                return
+
+    def action_remove_source(self):
+        source_id = self.args.get('source_id', '')
+        if kodiutils.yesno_dialog(S(32183)):
+            sources.remove_source(source_id)
+            kodiutils.notify(S(32185))
             kodiutils.refresh_container()
 
     def action_open_settings(self):

@@ -1,3 +1,37 @@
+v1.1.7 (2026-09-23)
+- Added: Manage sources -- a root-menu screen to add, rename, remove and
+  switch between named content sources (add_source/rename_source/
+  remove_source/set_static in sources.py), each independently markable
+  as static. Previously the only way to reach a second source was
+  Switch source, and nothing in the UI could add one.
+- Fixed: sources.rename_source() never persisted -- it mutated one
+  _load() call's in-memory dict, then saved a second, separately
+  loaded (and thus unmodified) dict.
+- Fixed: action_switch_source's success notification used a message
+  string with no {0} placeholder, silently dropping the source's name.
+- Added: multiple subtitle tracks per stream (Stream.subtitles, a list
+  of URLs or {"url","language"} dicts) alongside the existing single
+  `subtitle` field; all are passed to setSubtitles(). The single-stream
+  {"stream": ...} /resolve shape now also reads subtitle/subtitles
+  (previously only the {"streams": [...]} shape did).
+- Added: search works on static sources via an optional
+  search-index.json, fetched once (cached) and filtered client-side by
+  title. Degrades to no results if a static source doesn't publish one.
+- Added: tools/build_static_source.py turns a folder of your own videos
+  (one subfolder per category) into a static source in the same layout
+  build_static_demo.py uses -- thumbnails and per-language subtitles are
+  picked up from same-named sibling files.
+- Fixed: tools/build_repo.py's zip output is now byte-identical across
+  reruns of identical sources (fixed per-entry mtime, sorted file order)
+  instead of changing on every rebuild regardless of real content
+  changes.
+- Added: .github/workflows/pages-healthcheck.yml checks the GitHub
+  Pages source and demo content are reachable and well-formed daily and
+  after every publish, rather than a user discovering an outage.
+- Changed: repository.cumnation's own update URLs (info/checksum/
+  datadir) now point at GitHub Pages instead of raw.githubusercontent.com
+  -- unaffected by a future default-branch rename. See
+  repository.cumnation's own changelog (its addon.xml <news>).
 v1.1.6 (2026-09-23)
 - Fixed: the Settings -> Base API URL field was silently disconnected
   from ContentSource, which only ever read the (always-empty-by-default)

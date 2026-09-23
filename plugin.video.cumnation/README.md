@@ -16,6 +16,8 @@ any single website and ships nothing but the framework.
 | **Favorites** | Add/remove from the context menu; a dedicated Favorites folder; clear-all. |
 | **Watch history** | Recently watched items are remembered (toggleable, size-capped). |
 | **Resume** | Partially watched items resume where you left off; finished items reset automatically. |
+| **Subtitles** | A stream may carry one subtitle URL or several (one per language); all are handed to Kodi's own subtitle picker. |
+| **Multiple sources** | Add, rename, remove and switch between named content sources (each optionally static) from **Manage sources** on the root menu — no need to retype the URL to try another. |
 | **Adaptive streaming** | Plays HLS/DASH/SmoothStreaming via InputStream Adapter, with optional Widevine/PlayReady DRM. |
 | **Quality selection** | When the source returns several renditions: *Ask*, *Best available*, or a preferred resolution. |
 | **Caching & retries** | TTL cache for categories/listings and automatic retry-with-backoff on transient errors. |
@@ -116,8 +118,19 @@ GET {base}/resolve?id={video_id}[&url={page_url}]
             "manifest_type",             # "hls" | "mpd" | "ism" -> InputStream Adapter
             "mime_type",                 # optional, e.g. "application/dash+xml"
             "license_type",              # optional DRM, e.g. "com.widevine.alpha"
-            "license_key"}               # optional ISA license key string
+            "license_key",               # optional ISA license key string
+            "subtitle",                  # optional single subtitle URL
+            "subtitles"}                 # optional list, for multiple languages:
+                                          #   ["https://.../movie.en.vtt", ...] or
+                                          #   [{"url": "...", "language": "en"}, ...]
 ```
+
+`subtitles` (plural) is a list — one URL per language track; `subtitle`
+(singular) is a shorthand for one. Kodi has no separate parameter for a
+track's language: name each file with a language code (`movie.en.vtt`,
+`movie.fr.vtt`) and Kodi's own subtitle picker reads it from the filename;
+`"language"` in a `{"url", "language"}` entry is metadata for your own
+tooling, not something Kodi consumes directly.
 
 Both `/resolve` shapes are supported; a plain `{"stream": ...}` still works.
 `headers` are applied as Kodi request headers (progressive) or ISA
@@ -137,12 +150,20 @@ over HTTP — is enough; there is no code to run and nothing to keep online:
 GET {base}/categories.json
 GET {base}/list/{category}/{page}.json
 GET {base}/resolve/{id}.json
+GET {base}/search-index.json          # optional, powers search
 ```
 
-`/search` has no static equivalent (a file host can't answer arbitrary
-queries) and returns no results. `tools/build_static_demo.py` bakes this
-repo's own demo catalogue into that exact layout; see **Try it without a
-backend** below for a URL you can use right now.
+There's no server to run a search query against, so search instead fetches
+`search-index.json` once (cached) — a flat `{"videos": [<video>...]}` list
+of every video across every category — and filters it client-side by
+title. It's optional: an older static source (or a hand-authored one)
+without that file just returns no search results instead of erroring.
+
+`tools/build_static_demo.py` bakes this repo's own demo catalogue into
+that exact layout (search-index.json included); see **Try it without a
+backend** below for a URL you can use right now. `tools/build_static_source.py`
+does the same for a folder of your own videos — see **Build a static
+source from your own files** below.
 
 ### Skin widgets
 
@@ -199,6 +220,38 @@ powers on, no need to open Termux again. The Kodi add-on itself can't start
 this directly -- it's a separate sandboxed Android app with no way to reach
 into Termux -- so this is the OS-level equivalent: the backend is simply
 always running rather than being launched by anything.
+
+## Build a static source from your own files
+
+`tools/build_static_source.py` is the same idea as the demo above, but for
+your own videos instead of Big Buck Bunny -- no server to run, no account,
+just files you upload somewhere:
+
+```
+media/
+    Featured/
+        Big Buck Bunny.mp4
+        Big Buck Bunny.jpg          # optional thumb (same base name)
+        Big Buck Bunny.en.vtt       # optional subtitle (language in the name)
+    Home Movies/
+        beach_trip.mkv
+```
+
+```bash
+python3 tools/build_static_source.py media/ out/ --base-url https://example.com/mysource
+```
+
+Each top-level folder becomes a category, each video file inside it a video;
+a same-named image is its thumbnail and same-named `.vtt`/`.srt` files are
+subtitles (one per language, named `<video>.<lang>.vtt`). `out/` ends up
+holding both the generated JSON *and* copies of your media files, so
+uploading that one folder to any static host (GitHub Pages on a repo of
+your own, Netlify, S3, a NAS's web server, ...) is enough. `--base-url` is
+required: it's the URL `out/` will be served from once uploaded, baked into
+every stream/thumb/subtitle URL.
+
+Then in the add-on: **Base API URL** = your base URL, **This is a static
+source (no server)** = on.
 
 ## Development
 

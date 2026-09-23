@@ -90,10 +90,20 @@ def remove_source(source_id):
 
 
 def rename_source(source_id, name):
-    for s in all_sources():
+    data = _load()
+    for s in data.get('sources', []):
         if s.get('id') == source_id:
             s['name'] = name
-    storage.save(STORE, _load())
+    storage.save(STORE, data)
+
+
+def set_static(source_id, static):
+    """Flip a source's static/dynamic flag."""
+    data = _load()
+    for s in data.get('sources', []):
+        if s.get('id') == source_id:
+            s['static'] = bool(static)
+    storage.save(STORE, data)
 
 
 def clear():

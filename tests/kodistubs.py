@@ -82,6 +82,79 @@ class _File(object):
         self.close()
 
 
+class _InfoTag(object):
+    """Stand-in for getVideoInfoTag()'s setter API (Kodi 20+)."""
+
+    def __init__(self):
+        self.calls = {}
+
+    def setMediaType(self, v):
+        self.calls['mediatype'] = v
+
+    def setTitle(self, v):
+        self.calls['title'] = v
+
+    def setPlot(self, v):
+        self.calls['plot'] = v
+
+    def setDuration(self, v):
+        self.calls['duration'] = v
+
+    def setPremiered(self, v):
+        self.calls['premiered'] = v
+
+    def setRating(self, v):
+        self.calls['rating'] = v
+
+    def setTags(self, v):
+        self.calls['tag'] = v
+
+
+class _ListItem(object):
+    """Stand-in covering what router.py's _add_dir/_add_video/_apply_stream use."""
+
+    def __init__(self, label='', path=None):
+        self.label = label
+        self.path = path
+        self.art = {}
+        self.info = None
+        self.context_menu = []
+        self.properties = {}
+        self.subtitles = []
+        self.mime_type = None
+        self._tag = _InfoTag()
+
+    def setArt(self, art):
+        self.art = art
+
+    def setInfo(self, kind, info):
+        self.info = (kind, info)
+
+    def getVideoInfoTag(self):
+        return self._tag
+
+    def addContextMenuItems(self, items):
+        self.context_menu = list(items)
+
+    def setProperty(self, key, value):
+        self.properties[key] = value
+
+    def setPath(self, path):
+        self.path = path
+
+    def setMimeType(self, mime_type):
+        self.mime_type = mime_type
+
+    def setContentLookup(self, value):
+        pass
+
+    def setSubtitles(self, urls):
+        self.subtitles = list(urls)
+
+    def setUniqueIDs(self, *args, **kwargs):
+        pass
+
+
 def install():
     xbmc = type(sys)('xbmc')
     xbmc.LOGINFO = 1
@@ -98,7 +171,7 @@ def install():
     xbmcgui = type(sys)('xbmcgui')
     xbmcgui.NOTIFICATION_INFO = 'info'
     xbmcgui.NOTIFICATION_ERROR = 'error'
-    xbmcgui.ListItem = object
+    xbmcgui.ListItem = _ListItem
     xbmcgui.Dialog = object
 
     xbmcvfs = type(sys)('xbmcvfs')
@@ -109,6 +182,21 @@ def install():
     xbmcvfs.rename = lambda src, dst: os.rename(src, dst)
 
     xbmcplugin = type(sys)('xbmcplugin')
+    xbmcplugin.SORT_METHOD_NONE = 0
+    xbmcplugin.SORT_METHOD_TITLE = 1
+    xbmcplugin.SORT_METHOD_DATE = 2
+    xbmcplugin.SORT_METHOD_VIDEO_RATING = 3
+    xbmcplugin.added_items = []          # tests can read/clear this list
+
+    def _add_directory_item(handle, url, listitem, isFolder=False, totalItems=0):
+        xbmcplugin.added_items.append(
+            {'handle': handle, 'url': url, 'item': listitem, 'isFolder': isFolder})
+
+    xbmcplugin.addDirectoryItem = _add_directory_item
+    xbmcplugin.setContent = lambda handle, content: None
+    xbmcplugin.addSortMethod = lambda handle, method: None
+    xbmcplugin.endOfDirectory = lambda handle, succeeded=True, **k: None
+    xbmcplugin.setResolvedUrl = lambda handle, succeeded, listitem: None
 
     for name, mod in [('xbmc', xbmc), ('xbmcaddon', xbmcaddon),
                       ('xbmcgui', xbmcgui), ('xbmcvfs', xbmcvfs),
