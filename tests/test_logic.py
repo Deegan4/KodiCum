@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(ADDON_ROOT))
 
 from resources.lib import (  # noqa: E402
     favorites, history, resume, kodiutils, cache, dlna, cast,
-    sources, trakt)
+    sources, trakt, content)
 from resources.lib.models import (  # noqa: E402
     Video, Category, Page, Stream, Renderer, select_stream)
 
@@ -770,6 +770,20 @@ class RouterArgTests(unittest.TestCase):
         r = self._make_router('?page=abc')
         self.assertEqual(r._int_arg('page'), 0)
 
+    def test_switch_source_lists_sources_without_crashing(self):
+        # Regression: action_switch_source used to shadow the `sources`
+        # module with a local of the same name, raising UnboundLocalError
+        # before the selection dialog could even open.
+        sources.clear()
+        sources.add_source('Source A', 'http://a/api')
+        r = self._make_router('')
+        original_select = kodiutils.select
+        kodiutils.select = lambda heading, options: -1  # simulate cancel
+        try:
+            r.action_switch_source()  # must not raise
+        finally:
+            kodiutils.select = original_select
+
 
 class StreamSubtitleTests(unittest.TestCase):
     def test_subtitle_optional(self):
@@ -814,6 +828,85 @@ class SourceTests(unittest.TestCase):
         sources.set_active('source1')
         sources.remove_source('source1')
         self.assertEqual(sources.active_source()['id'], 'default')
+
+
+class ContentSourceBaseUrlTests(unittest.TestCase):
+    """The Settings -> Base API URL field must actually reach requests.
+
+    Regression: ContentSource only ever read sources.active_url() (the
+    multi-source manager's JSON store, always '' by default), so the
+    single `base_url` setting that Settings exposes had no effect and
+    every action silently failed with "configure a content source".
+    """
+    def setUp(self):
+        sources.clear()
+        kodiutils.set_setting('base_url', '')
+
+    def tearDown(self):
+        kodiutils.set_setting('base_url', '')
+
+    def test_falls_back_to_base_url_setting_when_no_source_added(self):
+        kodiutils.set_setting('base_url', 'http://legacy/api')
+        self.assertEqual(content.ContentSource().base_url, 'http://legacy/api')
+
+    def test_added_source_takes_priority_over_setting(self):
+        kodiutils.set_setting('base_url', 'http://legacy/api')
+        sources.add_source('Named Source', 'http://named/api')
+        self.assertEqual(content.ContentSource().base_url, 'http://named/api')
+
+    def test_empty_when_neither_is_configured(self):
+        self.assertEqual(content.ContentSource().base_url, '')
+
+
+class StaticSourceTests(unittest.TestCase):
+    """The "static (no server)" mode: requests must be fixed file paths,
+    with no query string, so a plain file host like GitHub Pages can serve
+    them (see tools/build_static_demo.py)."""
+
+    def setUp(self):
+        sources.clear()
+        sources.add_source('Static Demo', 'http://static.example/demo', static=True)
+        self.requested = []
+        self.responses = {}
+        self.source = content.ContentSource()
+        self.source._request = self._fake_request
+
+    def _fake_request(self, url):
+        self.requested.append(url)
+        return self.responses[url]
+
+    def test_categories_hits_fixed_json_path(self):
+        self.responses['http://static.example/demo/categories.json'] = \
+            {'categories': [{'id': 'featured', 'name': 'Featured'}]}
+        cats = self.source.categories()
+        self.assertEqual(self.requested,
+                         ['http://static.example/demo/categories.json'])
+        self.assertEqual(cats[0].id, 'featured')
+
+    def test_list_bakes_category_and_page_into_the_path(self):
+        url = 'http://static.example/demo/list/featured/2.json'
+        self.responses[url] = {'videos': [], 'page': 2, 'has_next': False}
+        self.source.list_videos('featured', page=2)
+        self.assertEqual(self.requested, [url])
+
+    def test_resolve_bakes_video_id_into_the_path(self):
+        url = 'http://static.example/demo/resolve/bbb.json'
+        self.responses[url] = {'stream': 'http://x/bbb.mp4'}
+        streams = self.source.resolve('bbb')
+        self.assertEqual(self.requested, [url])
+        self.assertEqual(streams[0].url, 'http://x/bbb.mp4')
+
+    def test_search_returns_empty_without_any_request(self):
+        result = self.source.search('bunny')
+        self.assertEqual(result.items, [])
+        self.assertFalse(result.has_next)
+        self.assertEqual(self.requested, [])
+
+    def test_ids_with_special_characters_are_url_escaped(self):
+        url = 'http://static.example/demo/list/kids%20%26%20family/1.json'
+        self.responses[url] = {'videos': [], 'page': 1, 'has_next': False}
+        self.source.list_videos('kids & family', page=1)
+        self.assertEqual(self.requested, [url])
 
 
 class TraktTests(unittest.TestCase):

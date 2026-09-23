@@ -17,6 +17,7 @@ It serves Blender Foundation open movies (Creative Commons licensed) so the
 playback path is exercised with legally shareable content.
 """
 import json
+import os
 import sys
 import time
 from collections import deque
@@ -28,44 +29,17 @@ except ImportError:  # pragma: no cover - Python 2 fallback
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
     from urlparse import urlparse, parse_qs
 
+# Run as a plain script (no Kodi package context), so import its sibling
+# module by adding this directory to the path rather than a relative import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import demo_content  # noqa: E402
+
 START_TIME = time.time()
 RECENT_REQUESTS = deque(maxlen=20)  # most-recent-first, for the dashboard
 
-# Public-domain / CC-licensed sample streams from Blender open movies.
-_STREAM = 'https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4'
-_SINTEL = 'https://download.blender.org/durian/movies/Sintel.2010.720p.mkv'
-
-CATEGORIES = [
-    {'id': 'featured', 'name': 'Featured', 'count': 2,
-     'plot': 'Hand-picked highlights'},
-    {'id': 'recent', 'name': 'Recently Added', 'count': 2,
-     'plot': 'The newest additions'},
-]
-
-VIDEOS = {
-    'featured': [
-        {'id': 'bbb', 'title': 'Big Buck Bunny', 'url': _STREAM,
-         'thumb': 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-         'preview': 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-         'plot': 'A large rabbit deals with three bullying rodents.',
-         'duration': 596, 'date': '10.04.2008', 'rating': 8.1,
-         'tags': ['animation', 'comedy']},
-        {'id': 'sintel', 'title': 'Sintel', 'url': _SINTEL,
-         'thumb': 'https://durian.blender.org/wp-content/uploads/2010/06/05.1c.jpg',
-         'preview': 'https://durian.blender.org/wp-content/uploads/2010/06/05.1c.jpg',
-         'duration': 888, 'date': '27.09.2010', 'rating': 8.5,
-         'tags': ['animation', 'fantasy']},
-    ],
-}
-VIDEOS['recent'] = list(reversed(VIDEOS['featured']))
-
-
-def _find(video_id):
-    for items in VIDEOS.values():
-        for video in items:
-            if video['id'] == video_id:
-                return video
-    return None
+CATEGORIES = demo_content.CATEGORIES
+VIDEOS = demo_content.VIDEOS
+_find = demo_content.find_video
 
 
 def _status_payload():
@@ -200,20 +174,7 @@ class Handler(BaseHTTPRequestHandler):
                     if term in v['title'].lower()]
             self._send({'videos': hits, 'page': 1, 'has_next': False})
         elif path == 'resolve':
-            video = _find(query.get('id', ''))
-            if not video:
-                self._send({'streams': []})
-            elif video['id'] == 'bbb':
-                # Demonstrate the multi-quality shape + the quality picker.
-                self._send({'streams': [
-                    {'url': 'https://download.blender.org/demo/movies/BBB/'
-                            'bbb_sunflower_1080p_30fps_normal.mp4',
-                     'quality': 1080, 'label': '1080p'},
-                    {'url': _STREAM, 'quality': 240, 'label': '240p'},
-                ]})
-            else:
-                # Single progressive stream (older/simple shape still works).
-                self._send({'stream': video['url'], 'headers': {}})
+            self._send(demo_content.resolve_payload(query.get('id', '')))
         else:
             self._send({'error': 'not found'})
 

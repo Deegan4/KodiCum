@@ -2,7 +2,7 @@
 
 Running context for the project. Update this as decisions and state change.
 
-_Last updated: 2026-07-21_
+_Last updated: 2026-09-23_
 
 ## What this is
 
@@ -22,12 +22,12 @@ source the user configures, and bundles no content or scrapers.
 
 ## Current state
 
-- **Add-on version:** `1.1.5` (`plugin.video.cumnation/addon.xml`).
+- **Add-on version:** `1.1.6` (`plugin.video.cumnation/addon.xml`).
 - **Repository add-on version:** `1.0.0` (`repository.cumnation/addon.xml`).
 - **Branch/PR:** work happens on `claude/session-0pl4np` and is pushed to both
   that branch and `main`. PR #1 was merged. Development continues by pushing
   to `main` directly (per user instruction "push to main").
-- **Tests:** 99 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
+- **Tests:** 115 `unittest` tests, all passing (`python3 -m unittest discover -s tests`).
 - **CI:** `.github/workflows/ci.yml` runs compile + XML validation + tests +
   repo rebuild on Python 3.9/3.11/3.12.
 
@@ -65,6 +65,23 @@ source the user configures, and bundles no content or scrapers.
 - **Content source switcher (1.1.5):** multiple sources managed via
   `sources.json`, switchable from the root menu.
 - **Cache size limit (1.1.5):** `MAX_ENTRIES = 500` with oldest-eviction.
+- **v1.1.6 fixes:** the `base_url` setting was completely disconnected from
+  `ContentSource` (it only read `sources.active_url()`, always `''` by
+  default) — every request 32050'd regardless of what was typed in
+  Settings. `action_switch_source` also crashed on every use
+  (`UnboundLocalError`, shadowed the `sources` module import with a local
+  of the same name). Both fixed; see `ContentSourceBaseUrlTests` and
+  `test_switch_source_lists_sources_without_crashing` in `test_logic.py`.
+- **Static (no-server) sources (1.1.6):** a source can be marked `static`
+  (per-source flag, or the `base_url_static` setting for the legacy
+  single-URL field). `ContentSource` then requests fixed paths —
+  `{base}/categories.json`, `{base}/list/{category}/{page}.json`,
+  `{base}/resolve/{id}.json` — instead of query strings, so a plain file
+  host with zero server-side logic works. `tools/build_static_demo.py`
+  bakes `resources/lib/demo_content.py` (shared with `mock_server.py`)
+  into that layout, published at
+  `https://deegan4.github.io/KodiCum/demo-content/` — a free, no-computer
+  way to try the add-on end to end. Search is unavailable in static mode.
 
 ## Key decisions / conventions
 
@@ -95,7 +112,5 @@ movies; demonstrates the multi-quality `/resolve` shape).
 ## Open threads / not yet done
 
 - **Parental PIN lock** — proposed, user did NOT select it. Available on request.
-- Other ideas floated, not started: multiple switchable content sources,
-  subtitle-track support from `/resolve`, Trakt scrobbling.
 - Repository URLs are hardcoded to `Deegan4/KodiCum@main` — moving/renaming the
   repo or default branch would break installed clients' updates.

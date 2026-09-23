@@ -431,3 +431,11 @@ msgstr ""
 msgctxt "#32157"
 msgid "Scan for devices now"
 msgstr ""
+
+msgctxt "#32173"
+msgid "This is a static source (no server)"
+msgstr ""
+
+msgctxt "#32174"
+msgid "Enable for a plain file host (e.g. GitHub Pages) that cannot run a real API: requests are made as {base}/categories.json, {base}/list/{category}/{page}.json and {base}/resolve/{id}.json instead of query strings, and search is unavailable"
+msgstr ""

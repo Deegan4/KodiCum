@@ -553,20 +553,17 @@ class Router(object):
         self._end()
 
     def action_switch_source(self):
-        sources = sources.all_sources()
-        if not sources:
+        src_list = sources.all_sources()
+        if not src_list:
             kodiutils.notify(S(32171))
             return
         labels = ['{0}'.format(s.get('name', s.get('id')))
-                  for s in sources]
-        active = sources.active_source().get('id')
-        idx = next((i for i, s in enumerate(sources)
-                    if s.get('id') == active), -1)
+                  for s in src_list]
         choice = kodiutils.select(S(32169), labels)
         if choice >= 0:
-            sources.set_active(sources[choice].get('id'))
+            sources.set_active(src_list[choice].get('id'))
             kodiutils.notify(S(32172).format(
-                sources[choice].get('name', '')))
+                src_list[choice].get('name', '')))
             kodiutils.refresh_container()
 
     def action_open_settings(self):

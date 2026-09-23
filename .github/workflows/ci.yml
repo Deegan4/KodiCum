@@ -27,5 +27,6 @@ jobs:
       - name: Verify repository build is up to date
         run: |
           python tools/build_repo.py
+          python tools/build_static_demo.py
           python -c "import xml.dom.minidom as m; m.parse('repo/zips/addons.xml'); print('repo addons.xml OK')"
           python -c "import hashlib; assert hashlib.md5(open('repo/zips/addons.xml','rb').read()).hexdigest() == open('repo/zips/addons.xml.md5').read().strip(); print('md5 OK')"

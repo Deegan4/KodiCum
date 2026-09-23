@@ -43,9 +43,9 @@ import json
 import time
 
 try:
-    from urllib.parse import urlencode
+    from urllib.parse import urlencode, quote
 except ImportError:  # pragma: no cover - Python 2 fallback
-    from urllib import urlencode
+    from urllib import urlencode, quote
 
 import requests
 
@@ -64,6 +64,16 @@ class ContentError(Exception):
 class ContentSource(object):
     def __init__(self):
         self.base_url = sources.active_url().rstrip('/')
+        if self.base_url:
+            self.static = sources.active_is_static()
+        else:
+            # Fall back to the legacy single "Base API URL" setting for
+            # users who haven't added a named source via the source
+            # switcher. Without this, that setting field is inert: the
+            # multi-source manager's (always-empty-by-default) active
+            # source silently wins and every request 32050s.
+            self.base_url = kodiutils.get_setting('base_url').rstrip('/')
+            self.static = kodiutils.get_setting_bool('base_url_static', False)
         self.page_size = kodiutils.get_setting_int('page_size', 30)
         self.retries = max(0, kodiutils.get_setting_int('network_retries', 2))
         self.session = requests.Session()
@@ -117,19 +127,58 @@ class ContentSource(object):
             cache.set(url, data)
         return data
 
+    def _get_static(self, path, cacheable=False):
+        """GET a fixed file path with no query string.
+
+        Used for "static" sources: a plain file host (GitHub Pages, S3, a
+        gist, ...) has no server-side logic to answer ``?category=&page=``,
+        so those parameters are baked into the path by the caller instead,
+        against files a static build step pre-generates (see
+        ``tools/build_static_demo.py``).
+        """
+        if not self.base_url:
+            raise ContentError(kodiutils.get_string(32050))  # "Configure a content source"
+        url = '{0}/{1}'.format(self.base_url, path)
+
+        if cacheable:
+            hit = cache.get(url)
+            if hit is not None:
+                kodiutils.log('CACHE {0}'.format(url))
+                return hit
+
+        kodiutils.log('GET {0}'.format(url))
+        data = self._request(url)
+
+        if cacheable:
+            cache.set(url, data)
+        return data
+
     # -- Public API -------------------------------------------------------
     def categories(self):
-        data = self._get('categories', cacheable=True)
+        if self.static:
+            data = self._get_static('categories.json', cacheable=True)
+        else:
+            data = self._get('categories', cacheable=True)
         return [Category.from_dict(item) for item in data.get('categories', [])]
 
     def list_videos(self, category_id, page=1):
-        params = {'category': category_id, 'page': page, 'limit': self.page_size}
-        data = self._get('list', params, cacheable=True)
+        if self.static:
+            path = 'list/{0}/{1}.json'.format(quote(category_id, safe=''), page)
+            data = self._get_static(path, cacheable=True)
+        else:
+            params = {'category': category_id, 'page': page, 'limit': self.page_size}
+            data = self._get('list', params, cacheable=True)
         videos = [Video.from_dict(item) for item in data.get('videos', [])]
         return Page(videos, page=data.get('page', page),
                     has_next=bool(data.get('has_next')))
 
     def search(self, query, page=1):
+        if self.static:
+            # A plain file host can't run a search query; there is no file
+            # to fetch for arbitrary text. Fail soft with an empty result
+            # rather than raising, since this is an expected limitation
+            # rather than a misconfiguration.
+            return Page([], page=1, has_next=False)
         params = {'q': query, 'page': page, 'limit': self.page_size}
         data = self._get('search', params)
         videos = [Video.from_dict(item) for item in data.get('videos', [])]
@@ -142,10 +191,13 @@ class ContentSource(object):
         Accepts either the single-stream shape ({"stream","headers"}) or the
         multi-stream shape ({"streams": [...]}), so older backends keep working.
         """
-        params = {'id': video_id}
-        if video_url:
-            params['url'] = video_url
-        data = self._get('resolve', params)
+        if self.static:
+            data = self._get_static('resolve/{0}.json'.format(quote(video_id, safe='')))
+        else:
+            params = {'id': video_id}
+            if video_url:
+                params['url'] = video_url
+            data = self._get('resolve', params)
 
         streams = []
         if data.get('streams'):

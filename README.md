@@ -58,6 +58,7 @@ add-on (or bumping its `version` in `addon.xml`), regenerate it:
 
 ```bash
 python3 tools/build_repo.py
+python3 tools/build_static_demo.py   # only if resources/lib/demo_content.py changed
 ```
 
 ## Quick start

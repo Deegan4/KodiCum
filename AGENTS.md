@@ -9,6 +9,7 @@ python3 -m unittest discover -s tests      # full test suite (Kodi stubbed)
 python3 -m unittest tests.test_logic.ResumeTests  # single test class
 python3 -m compileall plugin.video.cumnation      # "build" (byte-compile)
 python3 tools/build_repo.py            # regenerate repo/ after any add-on change
+python3 tools/build_static_demo.py     # regenerate static demo content (only if demo_content.py changed)
 ```
 
 No `requests` module in the test environment. Modules that need it (`trakt.py`)

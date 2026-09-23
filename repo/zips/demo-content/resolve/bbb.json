@@ -1,0 +1,14 @@
+{
+  "streams": [
+    {
+      "label": "1080p",
+      "quality": 1080,
+      "url": "https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_30fps_normal.mp4"
+    },
+    {
+      "label": "240p",
+      "quality": 240,
+      "url": "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+    }
+  ]
+}
