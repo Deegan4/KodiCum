@@ -29,4 +29,4 @@ jobs:
           python tools/build_repo.py
           python tools/build_static_demo.py
           python -c "import xml.dom.minidom as m; m.parse('repo/zips/addons.xml'); print('repo addons.xml OK')"
-          python -c "import hashlib; assert hashlib.md5(open('repo/zips/addons.xml','rb').read()).hexdigest() == open('repo/zips/addons.xml.md5').read().strip(); print('md5 OK')"
+          python tools/verify_addons_md5.py repo/zips/addons.xml repo/zips/addons.xml.md5

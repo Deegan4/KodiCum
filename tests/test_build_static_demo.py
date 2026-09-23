@@ -62,6 +62,14 @@ class BuildStaticDemoTests(unittest.TestCase):
         build_static_demo.main()
         self.assertEqual(self._read('categories.json'), before)
 
+    def test_search_index_contains_every_video_once(self):
+        indexed_ids = [v['id'] for v in self._read('search-index.json')['videos']]
+        all_ids = {video['id'] for items in demo_content.VIDEOS.values()
+                  for video in items}
+        self.assertEqual(set(indexed_ids), all_ids)
+        self.assertEqual(len(indexed_ids), len(set(indexed_ids)),
+                         'a video in more than one category must appear once')
+
 
 if __name__ == '__main__':
     unittest.main()

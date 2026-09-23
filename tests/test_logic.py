@@ -823,6 +823,97 @@ class StreamSubtitleTests(unittest.TestCase):
         self.assertEqual(Stream.from_dict(d).subtitle,
                          'http://x/sub.en.vtt')
 
+    def test_multiple_subtitles_default_empty(self):
+        s = Stream('http://x/v.mp4')
+        self.assertEqual(s.subtitles, [])
+        self.assertEqual(s.all_subtitle_urls, [])
+
+    def test_all_subtitle_urls_from_multiple_plain_strings(self):
+        s = Stream('http://x/v.mp4',
+                   subtitles=['http://x/sub.en.vtt', 'http://x/sub.fr.vtt'])
+        self.assertEqual(s.all_subtitle_urls,
+                         ['http://x/sub.en.vtt', 'http://x/sub.fr.vtt'])
+
+    def test_all_subtitle_urls_from_dicts_with_language(self):
+        s = Stream('http://x/v.mp4', subtitles=[
+            {'url': 'http://x/sub.en.vtt', 'language': 'en'},
+            {'url': 'http://x/sub.fr.vtt', 'language': 'fr'},
+        ])
+        self.assertEqual(s.all_subtitle_urls,
+                         ['http://x/sub.en.vtt', 'http://x/sub.fr.vtt'])
+
+    def test_all_subtitle_urls_merges_legacy_single_subtitle(self):
+        s = Stream('http://x/v.mp4', subtitle='http://x/sub.es.vtt',
+                   subtitles=['http://x/sub.en.vtt'])
+        self.assertEqual(s.all_subtitle_urls,
+                         ['http://x/sub.en.vtt', 'http://x/sub.es.vtt'])
+
+    def test_multiple_subtitles_roundtrip(self):
+        s = Stream('http://x/v.mp4', subtitles=[
+            {'url': 'http://x/sub.en.vtt', 'language': 'en'},
+        ])
+        d = s.to_dict()
+        self.assertEqual(d['subtitles'],
+                         [{'url': 'http://x/sub.en.vtt', 'language': 'en'}])
+        restored = Stream.from_dict(d)
+        self.assertEqual(restored.all_subtitle_urls, ['http://x/sub.en.vtt'])
+
+
+class _FakePlayItem(object):
+    """Minimal ListItem stand-in covering what _apply_stream calls."""
+
+    def __init__(self):
+        self.calls = {}
+
+    def setPath(self, v):
+        self.calls['path'] = v
+
+    def setProperty(self, k, v):
+        self.calls.setdefault('properties', {})[k] = v
+
+    def setMimeType(self, v):
+        self.calls['mime_type'] = v
+
+    def setContentLookup(self, v):
+        self.calls['content_lookup'] = v
+
+    def setSubtitles(self, urls):
+        self.calls['subtitles'] = list(urls)
+
+
+class ApplyStreamSubtitleTests(unittest.TestCase):
+    """router._apply_stream must hand every subtitle URL to setSubtitles."""
+
+    def _make_router(self):
+        import sys
+        if 'requests' not in sys.modules:
+            sys.modules['requests'] = type(sys)('requests')
+        from resources.lib import router as r
+        return r.Router(['', '0', ''])
+
+    def test_single_subtitle_is_passed(self):
+        router = self._make_router()
+        item = _FakePlayItem()
+        stream = Stream('http://x/v.mp4', subtitle='http://x/sub.en.vtt')
+        router._apply_stream(item, stream)
+        self.assertEqual(item.calls.get('subtitles'), ['http://x/sub.en.vtt'])
+
+    def test_multiple_subtitles_are_all_passed(self):
+        router = self._make_router()
+        item = _FakePlayItem()
+        stream = Stream('http://x/v.mp4', subtitles=[
+            'http://x/sub.en.vtt', 'http://x/sub.fr.vtt'])
+        router._apply_stream(item, stream)
+        self.assertEqual(item.calls.get('subtitles'),
+                         ['http://x/sub.en.vtt', 'http://x/sub.fr.vtt'])
+
+    def test_no_subtitles_means_no_call(self):
+        router = self._make_router()
+        item = _FakePlayItem()
+        stream = Stream('http://x/v.mp4')
+        router._apply_stream(item, stream)
+        self.assertNotIn('subtitles', item.calls)
+
 
 class SourceTests(unittest.TestCase):
     def setUp(self):
@@ -850,6 +941,161 @@ class SourceTests(unittest.TestCase):
         sources.set_active('source1')
         sources.remove_source('source1')
         self.assertEqual(sources.active_source()['id'], 'default')
+
+    def test_rename_source_persists(self):
+        # Regression: rename_source used to mutate an in-memory dict from
+        # one _load() call, then save a second, still-unmodified _load() --
+        # a rename that silently never persisted.
+        sid = sources.add_source('Original', 'http://x')
+        sources.rename_source(sid, 'Renamed')
+        self.assertEqual(sources.active_source()['name'], 'Renamed')
+        # And it survives a fresh read from storage, not just the same process.
+        self.assertEqual(
+            [s['name'] for s in sources.all_sources() if s['id'] == sid],
+            ['Renamed'])
+
+    def test_rename_source_only_touches_the_matching_id(self):
+        a = sources.add_source('A', 'http://a')
+        b = sources.add_source('B', 'http://b')
+        sources.rename_source(a, 'A renamed')
+        names = {s['id']: s['name'] for s in sources.all_sources()}
+        self.assertEqual(names[a], 'A renamed')
+        self.assertEqual(names[b], 'B')
+
+    def test_set_static_toggles_the_flag(self):
+        sid = sources.add_source('S', 'http://s', static=False)
+        sources.set_static(sid, True)
+        self.assertTrue(sources.active_is_static())
+        sources.set_static(sid, False)
+        self.assertFalse(sources.active_is_static())
+
+    def test_add_source_defaults_to_not_static(self):
+        sources.add_source('S', 'http://s')
+        self.assertFalse(sources.active_is_static())
+
+
+class ManageSourcesRouterTests(unittest.TestCase):
+    """The Manage sources screen: add/rename/toggle/remove/switch from the
+    add-on's own menu, not just via tests of the sources.py module."""
+
+    def _make_router(self, query=''):
+        import sys
+        if 'requests' not in sys.modules:
+            sys.modules['requests'] = type(sys)('requests')
+        from resources.lib import router as r
+        return r.Router(['', '0', query])
+
+    def setUp(self):
+        sources.clear()
+        import xbmcplugin
+        xbmcplugin.added_items = []
+        self.notified = []
+        self.refreshed = []
+        for name, replacement in (
+            ('notify', lambda msg, *a, **k: self.notified.append(msg)),
+            ('refresh_container', lambda: self.refreshed.append(True)),
+            ('keyboard', lambda heading, default='': None),
+            ('yesno_dialog', lambda *a, **k: False),
+            ('ok_dialog', lambda msg, *a, **k: None),
+        ):
+            self.addCleanup(setattr, kodiutils, name, getattr(kodiutils, name))
+            setattr(kodiutils, name, replacement)
+
+    def test_manage_sources_lists_every_source_plus_add_entry(self):
+        sources.add_source('Extra', 'http://extra')
+        router = self._make_router()
+        router.action_manage_sources()
+        import xbmcplugin
+        labels = [item['item'].label for item in xbmcplugin.added_items]
+        # default + Extra + "Add new source"
+        self.assertEqual(len(labels), 3)
+        self.assertTrue(any('Extra' in lbl for lbl in labels))
+
+    def test_manage_sources_marks_the_active_one(self):
+        sid = sources.add_source('Extra', 'http://extra')
+        sources.set_active(sid)
+        router = self._make_router()
+        router.action_manage_sources()
+        import xbmcplugin
+        active_labels = [item['item'].label for item in xbmcplugin.added_items
+                        if item['item'].label.endswith('*')]
+        self.assertEqual(len(active_labels), 1)
+        self.assertIn('Extra', active_labels[0])
+
+    def test_add_source_via_router(self):
+        router = self._make_router()
+        answers = iter(['My Source', 'http://my/api'])
+        kodiutils.keyboard = lambda heading, default='': next(answers)
+        kodiutils.yesno_dialog = lambda *a, **k: True
+        router.action_add_source()
+        names = [s['name'] for s in sources.all_sources()]
+        self.assertIn('My Source', names)
+        added = [s for s in sources.all_sources() if s['name'] == 'My Source'][0]
+        self.assertTrue(added['static'])
+        self.assertTrue(self.notified)
+        self.assertTrue(self.refreshed)
+
+    def test_add_source_cancelled_name_adds_nothing(self):
+        router = self._make_router()
+        before = len(sources.all_sources())
+        kodiutils.keyboard = lambda heading, default='': None
+        router.action_add_source()
+        self.assertEqual(len(sources.all_sources()), before)
+
+    def test_rename_source_via_router(self):
+        sid = sources.add_source('Old Name', 'http://x')
+        router = self._make_router('?source_id={0}'.format(sid))
+        kodiutils.keyboard = lambda heading, default='': 'New Name'
+        router.action_rename_source()
+        self.assertEqual(
+            [s['name'] for s in sources.all_sources() if s['id'] == sid],
+            ['New Name'])
+
+    def test_toggle_source_static_via_router(self):
+        sid = sources.add_source('S', 'http://x', static=False)
+        router = self._make_router('?source_id={0}'.format(sid))
+        router.action_toggle_source_static()
+        self.assertTrue(
+            [s for s in sources.all_sources() if s['id'] == sid][0]['static'])
+        router.action_toggle_source_static()
+        self.assertFalse(
+            [s for s in sources.all_sources() if s['id'] == sid][0]['static'])
+
+    def test_remove_source_via_router_when_confirmed(self):
+        sid = sources.add_source('S', 'http://x')
+        router = self._make_router('?source_id={0}'.format(sid))
+        kodiutils.yesno_dialog = lambda *a, **k: True
+        router.action_remove_source()
+        self.assertNotIn(sid, [s['id'] for s in sources.all_sources()])
+
+    def test_remove_source_via_router_when_declined(self):
+        sid = sources.add_source('S', 'http://x')
+        router = self._make_router('?source_id={0}'.format(sid))
+        kodiutils.yesno_dialog = lambda *a, **k: False
+        router.action_remove_source()
+        self.assertIn(sid, [s['id'] for s in sources.all_sources()])
+
+    def test_switch_to_source_via_router(self):
+        sid = sources.add_source('S', 'http://x')
+        router = self._make_router('?source_id={0}'.format(sid))
+        router.action_switch_to_source()
+        self.assertEqual(sources.active_source()['id'], sid)
+        self.assertTrue(self.notified)
+
+    def test_test_connection_works_against_a_static_source(self):
+        # action_test_connection ("Test connection" in Settings) needs no
+        # static-specific branch: ContentSource.categories() already
+        # dispatches on self.static, so this just needs to not blow up and
+        # to report the right count.
+        sources.add_source('Static', 'http://static.example', static=True)
+        router = self._make_router()
+        router.source._request = lambda url: {'categories': [
+            {'id': 'a', 'name': 'A'}, {'id': 'b', 'name': 'B'}]}
+        dialogs = []
+        kodiutils.ok_dialog = lambda msg, *a, **k: dialogs.append(msg)
+        router.action_test_connection()
+        self.assertEqual(len(dialogs), 1)
+        self.assertNotIn('str32043', dialogs[0])  # not the error-path string
 
 
 class ContentSourceBaseUrlTests(unittest.TestCase):
@@ -887,6 +1133,7 @@ class StaticSourceTests(unittest.TestCase):
 
     def setUp(self):
         sources.clear()
+        cache.clear()  # cacheable _get_static() results share a global cache
         sources.add_source('Static Demo', 'http://static.example/demo', static=True)
         self.requested = []
         self.responses = {}
@@ -918,11 +1165,51 @@ class StaticSourceTests(unittest.TestCase):
         self.assertEqual(self.requested, [url])
         self.assertEqual(streams[0].url, 'http://x/bbb.mp4')
 
-    def test_search_returns_empty_without_any_request(self):
+    def test_search_degrades_to_empty_when_no_index_is_published(self):
+        # No response registered for search-index.json -> the fake raises
+        # KeyError; content.py must turn any ContentError from a missing
+        # file into an empty result, not propagate an error.
+        self.source._request = self._raise_content_error
         result = self.source.search('bunny')
         self.assertEqual(result.items, [])
         self.assertFalse(result.has_next)
-        self.assertEqual(self.requested, [])
+
+    def _raise_content_error(self, url):
+        self.requested.append(url)
+        raise content.ContentError('404')
+
+    def test_search_matches_title_case_insensitively(self):
+        url = 'http://static.example/demo/search-index.json'
+        self.responses[url] = {'videos': [
+            {'id': 'bbb', 'title': 'Big Buck Bunny', 'url': 'http://x/bbb.mp4'},
+            {'id': 'sintel', 'title': 'Sintel', 'url': 'http://x/sintel.mkv'},
+        ]}
+        result = self.source.search('BUNNY')
+        self.assertEqual([v.id for v in result.items], ['bbb'])
+        self.assertFalse(result.has_next)
+
+    def test_search_fetches_index_only_once_across_calls(self):
+        url = 'http://static.example/demo/search-index.json'
+        self.responses[url] = {'videos': [
+            {'id': 'bbb', 'title': 'Big Buck Bunny', 'url': 'http://x/bbb.mp4'},
+        ]}
+        self.source.search('bunny')
+        self.source.search('bunny')
+        self.assertEqual(self.requested, [url])  # second call was cached
+
+    def test_search_paginates_using_page_size(self):
+        url = 'http://static.example/demo/search-index.json'
+        self.responses[url] = {'videos': [
+            {'id': 'v{0}'.format(i), 'title': 'Match {0}'.format(i),
+             'url': 'http://x/{0}.mp4'.format(i)} for i in range(5)
+        ]}
+        self.source.page_size = 2
+        page1 = self.source.search('match', page=1)
+        self.assertEqual([v.id for v in page1.items], ['v0', 'v1'])
+        self.assertTrue(page1.has_next)
+        page3 = self.source.search('match', page=3)
+        self.assertEqual([v.id for v in page3.items], ['v4'])
+        self.assertFalse(page3.has_next)
 
     def test_ids_with_special_characters_are_url_escaped(self):
         url = 'http://static.example/demo/list/kids%20%26%20family/1.json'

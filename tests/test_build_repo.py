@@ -58,5 +58,46 @@ class IndexListingTests(unittest.TestCase):
                          ['repository.cumnation-1.0.0.zip'])
 
 
+class DeterministicZipTests(unittest.TestCase):
+    """Rebuilding from identical sources must produce a byte-identical zip,
+    or every rebuild churns repo/zips/**/*.zip in the diff for no reason."""
+
+    def setUp(self):
+        self.src = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.src)
+        os.makedirs(os.path.join(self.src, 'resources'))
+        with open(os.path.join(self.src, 'addon.py'), 'w') as handle:
+            handle.write('print("hi")\n')
+        with open(os.path.join(self.src, 'resources', 'settings.xml'), 'w') as handle:
+            handle.write('<settings/>\n')
+        # A stale .pyc must never make it into the zip.
+        with open(os.path.join(self.src, 'addon.pyc'), 'w') as handle:
+            handle.write('stale bytecode\n')
+
+    def _build(self):
+        dest = tempfile.mktemp(suffix='.zip')
+        self.addCleanup(lambda: os.path.exists(dest) and os.remove(dest))
+        build_repo.zip_addon('plugin.video.example', self.src, dest)
+        with open(dest, 'rb') as handle:
+            return handle.read()
+
+    def test_rebuild_is_byte_identical(self):
+        first = self._build()
+        # Touch a file's mtime between builds; content is unchanged.
+        os.utime(os.path.join(self.src, 'addon.py'), (1000000000, 1000000000))
+        second = self._build()
+        self.assertEqual(first, second)
+
+    def test_excluded_extensions_are_not_packaged(self):
+        import zipfile
+        dest = tempfile.mktemp(suffix='.zip')
+        self.addCleanup(lambda: os.path.exists(dest) and os.remove(dest))
+        build_repo.zip_addon('plugin.video.example', self.src, dest)
+        with zipfile.ZipFile(dest) as zf:
+            names = zf.namelist()
+        self.assertNotIn('plugin.video.example/addon.pyc', names)
+        self.assertIn('plugin.video.example/addon.py', names)
+
+
 if __name__ == '__main__':
     unittest.main()

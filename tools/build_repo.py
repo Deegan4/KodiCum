@@ -41,17 +41,35 @@ def addon_version(addon_dir):
     return tree.getroot().get('version')
 
 
+# Fixed mtime baked into every zip entry so rebuilding from identical
+# sources produces a byte-identical zip. Without this, every rebuild
+# changes every zip (each file's real mtime gets stored), turning every
+# commit's diff into repo/zips/**/*.zip noise even when nothing changed.
+_FIXED_DATE_TIME = (2020, 1, 1, 0, 0, 0)
+
+
 def zip_addon(addon_id, src_dir, dest_zip):
     with zipfile.ZipFile(dest_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for base, dirs, files in os.walk(src_dir):
-            dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
-            for name in files:
+        for base, dirs, files in sorted_walk(src_dir):
+            for name in sorted(files):
                 if os.path.splitext(name)[1] in EXCLUDE_EXTS:
                     continue
                 abs_path = os.path.join(base, name)
                 # Arcname must be prefixed with the add-on id folder.
                 rel = os.path.relpath(abs_path, src_dir)
-                zf.write(abs_path, os.path.join(addon_id, rel))
+                arcname = os.path.join(addon_id, rel).replace(os.sep, '/')
+                info = zipfile.ZipInfo(arcname, date_time=_FIXED_DATE_TIME)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = (os.stat(abs_path).st_mode & 0o777) << 16
+                with open(abs_path, 'rb') as handle:
+                    zf.writestr(info, handle.read())
+
+
+def sorted_walk(src_dir):
+    """os.walk with deterministic directory/file ordering."""
+    for base, dirs, files in os.walk(src_dir):
+        dirs[:] = sorted(d for d in dirs if d not in EXCLUDE_DIRS)
+        yield base, dirs, files
 
 
 def build_addons_xml(addon_dirs):
@@ -64,11 +82,14 @@ def build_addons_xml(addon_dirs):
         ET.tostring(root, encoding='utf-8')
 
 
-def write_index(directory):
+def write_index(directory, root=None):
     """Write an Apache-style ``index.html`` listing ``directory``.
 
     Kodi's HTTP directory parser only accepts ``<a href>`` entries whose link
     text equals the (unescaped) href, with folders carrying a trailing slash.
+    ``root`` (default: ``OUTPUT``) is only used to build the page's title;
+    other tools that publish an unrelated tree (e.g. build_static_source.py)
+    pass their own so the title doesn't come out relative to the wrong base.
     """
     entries = []
     for name in sorted(os.listdir(directory)):
@@ -77,7 +98,8 @@ def write_index(directory):
         if os.path.isdir(os.path.join(directory, name)):
             name += '/'
         entries.append('<a href="{0}">{0}</a>'.format(html.escape(name)))
-    title = 'Index of /' + os.path.relpath(directory, OUTPUT).replace(os.sep, '/')
+    title = 'Index of /' + os.path.relpath(
+        directory, root if root is not None else OUTPUT).replace(os.sep, '/')
     title = html.escape(title.rstrip('.'))
     page = ('<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8">'
             '<title>{0}</title></head>\n<body>\n<h1>{0}</h1>\n<pre>\n'

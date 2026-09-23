@@ -1,0 +1,52 @@
+name: Pages health check
+
+# Catches a Pages misconfiguration or outage on its own, rather than a user
+# discovering it as "Couldn't retrieve directory information" in Kodi. Checks
+# every URL the README/Kodi actually depend on: the repository listing Kodi's
+# File manager browses, the checksum it verifies against, and the static demo
+# content source.
+
+on:
+  schedule:
+    - cron: '17 13 * * *'   # once a day; arbitrary off-the-hour minute
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Publish Kodi source"]
+    types: [completed]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4    # for tools/verify_addons_md5.py
+      - name: Check the Kodi source and demo content are reachable
+        run: |
+          set -u
+          fail=0
+          check_200() {
+            local url="$1"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$url")
+            if [ "$code" != "200" ]; then
+              echo "::error::$url returned $code, expected 200"
+              fail=1
+            else
+              echo "OK  $code  $url"
+            fi
+          }
+
+          check_200 "https://deegan4.github.io/KodiCum/"
+          check_200 "https://deegan4.github.io/KodiCum/addons.xml"
+          check_200 "https://deegan4.github.io/KodiCum/addons.xml.md5"
+          check_200 "https://deegan4.github.io/KodiCum/demo-content/categories.json"
+          check_200 "https://deegan4.github.io/KodiCum/demo-content/search-index.json"
+
+          echo "Validating addons.xml is well-formed and its checksum matches..."
+          curl -sS -o /tmp/addons.xml "https://deegan4.github.io/KodiCum/addons.xml"
+          curl -sS -o /tmp/addons.xml.md5 "https://deegan4.github.io/KodiCum/addons.xml.md5"
+          python3 -c "import xml.dom.minidom as m; m.parse('/tmp/addons.xml'); print('addons.xml OK')" || fail=1
+          python3 tools/verify_addons_md5.py /tmp/addons.xml /tmp/addons.xml.md5 || fail=1
+
+          if [ "$fail" != "0" ]; then
+            echo "::error::Pages health check failed - see above"
+            exit 1
+          fi

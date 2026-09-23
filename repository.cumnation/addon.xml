@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="repository.cumnation"
        name="Cumnation Repository"
-       version="1.0.0"
+       version="1.0.1"
        provider-name="KodiCum">
     <extension point="xbmc.addon.repository" name="Cumnation Repository">
         <dir>
-            <info compressed="false">https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/addons.xml</info>
-            <checksum>https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/addons.xml.md5</checksum>
-            <datadir zip="true">https://raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/</datadir>
+            <info compressed="false">https://deegan4.github.io/KodiCum/addons.xml</info>
+            <checksum>https://deegan4.github.io/KodiCum/addons.xml.md5</checksum>
+            <datadir zip="true">https://deegan4.github.io/KodiCum/</datadir>
         </dir>
     </extension>
     <extension point="xbmc.addon.metadata">
@@ -15,6 +15,12 @@
         <description lang="en_gb">Repository for the Cumnation video add-on. Add this to receive Cumnation and its updates directly inside Kodi.</description>
         <platform>all</platform>
         <license>MIT</license>
+        <news>v1.0.1 - Update URLs (info/checksum/datadir) now point at GitHub
+Pages instead of raw.githubusercontent.com. Raw GitHub still works for
+individual files (nothing breaks for anyone on 1.0.0), but Pages doesn't
+encode the branch name into the URL, so a future default-branch rename
+won't strand already-installed clients' updates the way changing
+`main` in a raw URL would.</news>
         <assets>
             <icon>resources/icon.png</icon>
         </assets>
