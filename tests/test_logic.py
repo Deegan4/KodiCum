@@ -18,6 +18,28 @@ kodistubs.install()
 ADDON_ROOT = os.path.join(os.path.dirname(__file__), '..', 'plugin.video.cumnation')
 sys.path.insert(0, os.path.abspath(ADDON_ROOT))
 
+# content.py imports the `requests` package, which CI intentionally never
+# pip-installs (the off-device suite has no dependencies of its own; a real
+# Kodi install provides it via script.module.requests). Stub it so importing
+# content here at module level, and instantiating ContentSource() in tests,
+# doesn't require it to actually be present.
+if 'requests' not in sys.modules:
+    _requests_stub = type(sys)('requests')
+
+    class _StubSession(object):
+        def __init__(self):
+            self.headers = {}
+
+        def get(self, *args, **kwargs):
+            raise NotImplementedError('network access is not available in tests')
+
+    class _StubRequestException(Exception):
+        pass
+
+    _requests_stub.Session = _StubSession
+    _requests_stub.RequestException = _StubRequestException
+    sys.modules['requests'] = _requests_stub
+
 from resources.lib import (  # noqa: E402
     favorites, history, resume, kodiutils, cache, dlna, cast,
     sources, trakt, content)
