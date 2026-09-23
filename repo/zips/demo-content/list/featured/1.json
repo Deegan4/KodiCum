@@ -1,0 +1,36 @@
+{
+  "has_next": false,
+  "page": 1,
+  "videos": [
+    {
+      "date": "10.04.2008",
+      "duration": 596,
+      "id": "bbb",
+      "plot": "A large rabbit deals with three bullying rodents.",
+      "preview": "https://peach.blender.org/wp-content/uploads/bbb-splash.png",
+      "rating": 8.1,
+      "tags": [
+        "animation",
+        "comedy"
+      ],
+      "thumb": "https://peach.blender.org/wp-content/uploads/bbb-splash.png",
+      "title": "Big Buck Bunny",
+      "url": "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+    },
+    {
+      "date": "27.09.2010",
+      "duration": 888,
+      "id": "sintel",
+      "plot": "A girl named Sintel hunts a baby dragon across a snowy wasteland.",
+      "preview": "https://durian.blender.org/wp-content/uploads/2010/06/05.1c.jpg",
+      "rating": 8.5,
+      "tags": [
+        "animation",
+        "fantasy"
+      ],
+      "thumb": "https://durian.blender.org/wp-content/uploads/2010/06/05.1c.jpg",
+      "title": "Sintel",
+      "url": "https://download.blender.org/durian/movies/Sintel.2010.720p.mkv"
+    }
+  ]
+}

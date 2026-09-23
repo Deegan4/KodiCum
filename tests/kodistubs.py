@@ -16,6 +16,7 @@ class _Addon(object):
         # Kodi returns a setting's default value when it has not been set.
         self._settings = {
             'page_size': '30',
+            'base_url_static': 'false',
             'user_agent': 'Mozilla/5.0 (Kodi) Cumnation/1.0',
             'resume_playback': 'true',
             'track_history': 'true',

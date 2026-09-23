@@ -125,6 +125,25 @@ Both `/resolve` shapes are supported; a plain `{"stream": ...}` still works.
 When several streams are returned, the **Preferred quality** setting decides
 which plays (or prompts).
 
+### Static sources (no server, free)
+
+If you don't want to run or pay for anything, turn on **This is a static
+source (no server)** in Settings alongside the Base API URL (or when adding
+a named source). Requests become fixed file paths instead of query strings,
+so a plain file host — GitHub Pages, S3, a gist, anything that serves files
+over HTTP — is enough; there is no code to run and nothing to keep online:
+
+```
+GET {base}/categories.json
+GET {base}/list/{category}/{page}.json
+GET {base}/resolve/{id}.json
+```
+
+`/search` has no static equivalent (a file host can't answer arbitrary
+queries) and returns no results. `tools/build_static_demo.py` bakes this
+repo's own demo catalogue into that exact layout; see **Try it without a
+backend** below for a URL you can use right now.
+
 ### Skin widgets
 
 Bind these plugin paths as widgets in a skin:
@@ -137,12 +156,19 @@ plugin://plugin.video.cumnation/?action=widget&type=category&category=<id>
 
 ## Try it without a backend
 
-A reference backend is included. It serves Creative-Commons Blender open movies
-so you can exercise the whole path — including playback — immediately:
+**No computer, free, nothing to run:** this repo's GitHub Pages already
+hosts a static copy of the demo catalogue (the same Creative-Commons
+Blender movies below). Set **Base API URL** to
+`https://deegan4.github.io/KodiCum/demo-content` and turn on **This is a
+static source (no server)** — that's it, no accounts, no hosting to set up.
+
+**Run it yourself instead:** a reference backend is included. It serves the
+same Creative-Commons Blender open movies so you can exercise the whole
+path — including playback — immediately:
 
 ```bash
 python3 plugin.video.cumnation/resources/lib/mock_server.py 8080
-# then set Base API URL to http://<your-ip>:8080
+# then set Base API URL to http://<your-ip>:8080 (leave "static" off)
 ```
 
 `GET /` on the running server is a small status dashboard (uptime, request

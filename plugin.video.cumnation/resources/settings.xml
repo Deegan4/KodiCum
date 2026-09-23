@@ -10,6 +10,11 @@
                         <heading>32101</heading>
                     </control>
                 </setting>
+                <setting id="base_url_static" type="boolean" label="32173" help="32174">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
                 <setting id="user_agent" type="string" label="32103" help="32104">
                     <level>1</level>
                     <default>Mozilla/5.0 (Kodi) Cumnation/1.0</default>

@@ -26,6 +26,10 @@ python3 -m compileall plugin.video.cumnation
 # Regenerate the installable repository after ANY add-on change or version bump
 python3 tools/build_repo.py
 
+# Regenerate the static, no-server demo content served from GitHub Pages
+# (run after build_repo.py — see below — only if demo_content.py changed)
+python3 tools/build_static_demo.py
+
 # Exercise the whole add-on path (incl. playback) against a real backend:
 #   serves CC-licensed Blender movies; point Base API URL at http://<ip>:8080
 python3 plugin.video.cumnation/resources/lib/mock_server.py 8080
@@ -55,6 +59,19 @@ add-on code. `mock_server.py` is a reference implementation of it (and is NOT
 loaded by Kodi). `_get(..., cacheable=True)` layers the TTL cache (`cache.py`)
 over categories/listings, and `_request()` retries transient failures with
 exponential backoff; both are settings-driven.
+
+**Content sources can be dynamic or static.** A dynamic source answers
+`?category=&page=` query strings and needs real server logic (`mock_server.py`
+is a reference implementation). A "static" source (a source dict's `static`
+flag, or the `base_url_static` setting for the legacy single-URL field) is a
+plain file host with no server-side logic — GitHub Pages, S3, a gist — that
+can't answer query strings, so `content.py` requests fixed paths instead
+(`{base}/categories.json`, `{base}/list/{category}/{page}.json`,
+`{base}/resolve/{id}.json`) and search is unavailable.
+`tools/build_static_demo.py` bakes `resources/lib/demo_content.py` (the same
+catalogue `mock_server.py` serves) into that layout under `repo/zips/demo-content/`,
+published free via GitHub Pages — a zero-setup, zero-cost way to see the
+add-on play video with no backend to run.
 
 **`/resolve` returns a list of `Stream`s; playback picks one.** A stream may be
 progressive or adaptive (`manifest_type` hls/mpd/ism). `router._pick_stream`
@@ -103,6 +120,12 @@ before the add-on is imported.
   information"). `build_repo.py` writes an `index.html` listing into every
   `repo/zips/` directory and `.github/workflows/pages.yml` publishes
   `repo/zips/` to `https://deegan4.github.io/KodiCum/`.
+- **The Base API URL setting only applies when no named source is
+  active.** `ContentSource` reads `sources.active_url()` first (the
+  multi-source manager) and falls back to the single `base_url` setting
+  only when no source has been added — this used to be silently
+  disconnected entirely (v1.1.6 fix); keep both paths covered by tests
+  when touching `content.py`'s `__init__`.
 - **User-facing strings** live in
   `resources/language/resource.language.en_gb/strings.po` and are referenced by
   numeric id via `kodiutils.get_string()` (aliased `S` in the router). Add a

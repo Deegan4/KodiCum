@@ -1,3 +1,19 @@
+v1.1.6 (2026-09-23)
+- Fixed: the Settings -> Base API URL field was silently disconnected
+  from ContentSource, which only ever read the (always-empty-by-default)
+  multi-source manager's active URL. Typing a URL into that setting had
+  no effect on any request.
+- Fixed: the "Switch source" root menu item crashed (UnboundLocalError)
+  on every use due to a variable shadowing the `sources` module.
+- Added: a "static (no server)" content source mode (base_url_static
+  setting / static flag on a named source). Requests become fixed file
+  paths -- {base}/categories.json, {base}/list/{category}/{page}.json,
+  {base}/resolve/{id}.json -- so a plain static file host with no
+  server-side logic (GitHub Pages, S3, ...) can serve content; search is
+  unavailable in this mode. tools/build_static_demo.py bakes the existing
+  mock_server.py demo catalogue into this layout, published at
+  https://deegan4.github.io/KodiCum/demo-content/ for a zero-setup,
+  zero-cost way to try the add-on.
 v1.1.5 (2026-09-16)
 - Resume badges: partially-watched videos now show a progress label
   (percentage) in listings via Progress/ResumeLabel ListItem properties

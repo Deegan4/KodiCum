@@ -1,0 +1,16 @@
+{
+  "categories": [
+    {
+      "count": 2,
+      "id": "featured",
+      "name": "Featured",
+      "plot": "Hand-picked highlights"
+    },
+    {
+      "count": 2,
+      "id": "recent",
+      "name": "Recently Added",
+      "plot": "The newest additions"
+    }
+  ]
+}

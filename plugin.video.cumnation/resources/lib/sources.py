@@ -50,6 +50,11 @@ def active_url():
     return active_source().get('url', '')
 
 
+def active_is_static():
+    """Whether the active source is a static (serverless) file host."""
+    return bool(active_source().get('static', False))
+
+
 def set_active(source_id):
     """Switch the active source by ID."""
     data = _load()
@@ -57,11 +62,16 @@ def set_active(source_id):
     storage.save(STORE, data)
 
 
-def add_source(name, url):
-    """Add a new content source."""
+def add_source(name, url, static=False):
+    """Add a new content source.
+
+    ``static`` marks a source hosted on a plain file host (no server-side
+    logic, e.g. GitHub Pages) that serves the JSON API contract as static
+    files instead of answering query strings; see ``content.py``.
+    """
     data = _load()
     source_id = 'source{0}'.format(len(data['sources']))
-    source = {'id': source_id, 'name': name, 'url': url}
+    source = {'id': source_id, 'name': name, 'url': url, 'static': bool(static)}
     data['sources'].append(source)
     data['active'] = source_id
     storage.save(STORE, data)
