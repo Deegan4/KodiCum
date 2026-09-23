@@ -16,6 +16,9 @@ source the user configures, and bundles no content or scrapers.
 - **Distribution repo path (hardcoded in `repository.cumnation`):**
   `raw.githubusercontent.com/Deegan4/KodiCum/main/repo/zips/` — so the
   generated `repo/` tree must stay on `main`.
+- **File manager source URL:** `https://deegan4.github.io/KodiCum/` (GitHub
+  Pages, published from `repo/zips/` by `.github/workflows/pages.yml`). The raw
+  URL can't be used as a source — raw GitHub can't list directories.
 
 ## Current state
 

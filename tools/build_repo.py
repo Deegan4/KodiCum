@@ -6,6 +6,12 @@ Produces ``repo/zips/`` containing, per add-on, a versioned zip plus a merged
 ``addons.xml`` and its ``addons.xml.md5`` checksum — exactly what a Kodi
 repository add-on's <datadir>/<info>/<checksum> URLs point at.
 
+Every directory also gets an ``index.html`` listing. Kodi's File manager
+"Add source" browses HTTP sources by parsing such listings; without them it
+fails with "Couldn't retrieve directory information". The listings are served
+by GitHub Pages (see ``.github/workflows/pages.yml``) because
+raw.githubusercontent.com cannot serve directory URLs at all.
+
 Run from the repo root:
 
     python3 tools/build_repo.py
@@ -13,6 +19,7 @@ Run from the repo root:
 Re-run whenever an add-on's files or version change, then commit ``repo/``.
 """
 import hashlib
+import html
 import os
 import shutil
 import zipfile
@@ -57,6 +64,28 @@ def build_addons_xml(addon_dirs):
         ET.tostring(root, encoding='utf-8')
 
 
+def write_index(directory):
+    """Write an Apache-style ``index.html`` listing ``directory``.
+
+    Kodi's HTTP directory parser only accepts ``<a href>`` entries whose link
+    text equals the (unescaped) href, with folders carrying a trailing slash.
+    """
+    entries = []
+    for name in sorted(os.listdir(directory)):
+        if name == 'index.html':
+            continue
+        if os.path.isdir(os.path.join(directory, name)):
+            name += '/'
+        entries.append('<a href="{0}">{0}</a>'.format(html.escape(name)))
+    title = 'Index of /' + os.path.relpath(directory, OUTPUT).replace(os.sep, '/')
+    title = html.escape(title.rstrip('.'))
+    page = ('<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8">'
+            '<title>{0}</title></head>\n<body>\n<h1>{0}</h1>\n<pre>\n'
+            '{1}\n</pre>\n</body>\n</html>\n').format(title, '\n'.join(entries))
+    with open(os.path.join(directory, 'index.html'), 'w') as handle:
+        handle.write(page)
+
+
 def main():
     if os.path.isdir(OUTPUT):
         shutil.rmtree(OUTPUT)
@@ -80,6 +109,10 @@ def main():
     with open(xml_path + '.md5', 'w') as handle:
         handle.write(md5)
     print('wrote addons.xml + addons.xml.md5 ({0})'.format(md5))
+
+    for base, _dirs, _files in os.walk(OUTPUT):
+        write_index(base)
+    print('wrote index.html directory listings')
 
 
 if __name__ == '__main__':
