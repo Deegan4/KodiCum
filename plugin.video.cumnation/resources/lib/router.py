@@ -33,6 +33,24 @@ S = kodiutils.get_string
 
 
 class Router(object):
+    # (sort key, label string id) in the order offered by the "Sort by" dialog.
+    SORT_OPTIONS = [
+        ('', 32181),
+        ('title', 32182),
+        ('rating', 32183),
+        ('date', 32184),
+        ('duration', 32185),
+    ]
+    # sort key -> (item -> comparable, reverse). Rating/date/duration sort
+    # highest-first (best/newest/longest first feels natural when browsing);
+    # title sorts A-Z.
+    SORT_FUNCS = {
+        'title': (lambda v: (v.title or '').lower(), False),
+        'rating': (lambda v: v.rating if v.rating is not None else -1, True),
+        'date': (lambda v: v.date or '', True),
+        'duration': (lambda v: v.duration or 0, True),
+    }
+
     def __init__(self, argv):
         self.base_url = argv[0]
         self.handle = int(argv[1])
@@ -79,6 +97,7 @@ class Router(object):
             xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_TITLE)
             xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_DATE)
             xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_VIDEO_RATING)
+            xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_VIDEO_RUNTIME)
         xbmcplugin.endOfDirectory(self.handle)
 
     # -- directory helpers ------------------------------------------------
@@ -96,7 +115,7 @@ class Router(object):
             item.addContextMenuItems(context)
         xbmcplugin.addDirectoryItem(self.handle, url, item, isFolder=True)
 
-    def _add_video(self, video, context_extra=None):
+    def _add_video(self, video, context_extra=None, list_ctx=None):
         item = xbmcgui.ListItem(label=video.title)
         art = {}
         if video.thumb:
@@ -139,9 +158,12 @@ class Router(object):
 
         item.addContextMenuItems(self._video_context(video, context_extra))
 
-        play_url = self.url_for(action='play', video_id=video.id,
-                                url=video.url or '',
-                                data=json.dumps(video.to_dict()))
+        play_kwargs = dict(action='play', video_id=video.id,
+                           url=video.url or '',
+                           data=json.dumps(video.to_dict()))
+        if list_ctx:
+            play_kwargs.update(list_ctx)
+        play_url = self.url_for(**play_kwargs)
         xbmcplugin.addDirectoryItem(self.handle, play_url, item, isFolder=False)
 
     def _video_context(self, video, extra=None):
@@ -168,6 +190,8 @@ class Router(object):
     def action_root(self):
         self._add_dir(S(32010), self.url_for(action='categories'),
                       plot=S(32011))
+        self._add_dir(S(32188), self.url_for(action='continue_watching'),
+                      plot=S(32189))
         self._add_dir(S(32012), self.url_for(action='search'),
                       plot=S(32013))
         self._add_dir(S(32014), self.url_for(action='favorites'),
@@ -196,17 +220,50 @@ class Router(object):
     def action_list(self):
         category = self.args.get('category', '')
         page = self._int_arg('page', 1)
+        sort_key = self.args.get('sort', '')
         result = self.source.list_videos(category, page)
-        for video in result.items:
-            self._add_video(video)
-        self._add_next(result, action='list', category=category)
+        items = self._sort_items(self._filter_rating(result.items), sort_key)
+        self._add_sort_dir(category, page, sort_key)
+        for video in items:
+            self._add_video(video, list_ctx={'category': category, 'page': page})
+        self._add_next(result, action='list', category=category, sort=sort_key)
         self._end()
+
+    def action_choose_sort(self):
+        category = self.args.get('category', '')
+        page = self.args.get('page', '1')
+        labels = [S(sid) for _, sid in self.SORT_OPTIONS]
+        choice = kodiutils.select(S(32180), labels)
+        if choice < 0:
+            return
+        sort_key = self.SORT_OPTIONS[choice][0]
+        kodiutils.navigate(self.url_for(action='list', category=category,
+                                        page=page, sort=sort_key))
 
     def _add_next(self, page_result, **kwargs):
         if page_result.has_next:
             next_page = page_result.page + 1
             self._add_dir('{0} ({1})'.format(S(32020), next_page),
                           self.url_for(page=next_page, **kwargs))
+
+    def _filter_rating(self, items):
+        minimum = kodiutils.get_setting_int('min_rating', 0)
+        if not minimum:
+            return items
+        return [v for v in items
+                if v.rating is not None and float(v.rating) >= minimum]
+
+    def _sort_items(self, items, sort_key):
+        func = self.SORT_FUNCS.get(sort_key)
+        if not func:
+            return items
+        key, reverse = func
+        return sorted(items, key=key, reverse=reverse)
+
+    def _add_sort_dir(self, category, page, sort_key):
+        self._add_dir(S(32180),
+                      self.url_for(action='choose_sort', category=category,
+                                   page=page, sort=sort_key))
 
     # -- actions: search --------------------------------------------------
     def action_search(self):
@@ -237,7 +294,7 @@ class Router(object):
         result = self.source.search(query, page)
         if not result.items and page == 1:
             kodiutils.notify(S(32022))
-        for video in result.items:
+        for video in self._filter_rating(result.items):
             self._add_video(video)
         self._add_next(result, action='do_search', q=query)
         self._end()
@@ -292,6 +349,14 @@ class Router(object):
             history.clear_watched()
             kodiutils.refresh_container()
 
+    def action_continue_watching(self):
+        items = [v for v in history.watched() if resume.get(v.id) > 0]
+        if not items:
+            kodiutils.notify(S(32193))
+        for video in items:
+            self._add_video(video)
+        self._end()
+
     def action_clear_resume(self):
         video_id = self.args.get('video_id', '')
         resume.clear(None if not video_id else video_id)
@@ -344,6 +409,8 @@ class Router(object):
         video_id = self.args.get('video_id', '')
         video_url = self.args.get('url', '')
         video = Video.from_dict(json.loads(self.args.get('data', '{}')))
+        category = self.args.get('category', '')
+        page = self._int_arg('page', 1)
 
         try:
             streams = self.source.resolve(video_id, video_url)
@@ -376,9 +443,45 @@ class Router(object):
         # Signal Trakt that playback started.
         trakt.scrobble_start(video)
 
-        # Track the resume point for next time.
-        if resume.enabled() and video_id:
-            ResumePlayer(video_id, video).run()
+        # Block until playback stops so we can track the resume point and/or
+        # queue up the next video. ResumePlayer itself only persists a resume
+        # point when resume tracking is enabled; here it also runs whenever
+        # auto-play-next needs to know whether the video ran to completion.
+        autoplay = category and kodiutils.get_setting_bool('autoplay_next', False)
+        if video_id and (resume.enabled() or autoplay):
+            monitor = ResumePlayer(video_id, video)
+            monitor.run()
+            if autoplay and monitor.ended:
+                self._maybe_autoplay_next(category, page, video_id)
+
+    def _next_in_category(self, category, page, current_id):
+        """Return (video, page) for the item after ``current_id``, or None."""
+        result = self.source.list_videos(category, page)
+        ids = [v.id for v in result.items]
+        if current_id in ids:
+            idx = ids.index(current_id)
+            if idx + 1 < len(result.items):
+                return result.items[idx + 1], page
+        if result.has_next:
+            next_page = result.page + 1
+            next_result = self.source.list_videos(category, next_page)
+            if next_result.items:
+                return next_result.items[0], next_page
+        return None
+
+    def _maybe_autoplay_next(self, category, page, current_id):
+        try:
+            found = self._next_in_category(category, page, current_id)
+        except ContentError:
+            return
+        if not found:
+            return
+        next_video, next_page = found
+        kodiutils.notify(S(32194).format(next_video.title))
+        kodiutils.play_media(self.url_for(
+            action='play', video_id=next_video.id, url=next_video.url or '',
+            data=json.dumps(next_video.to_dict()),
+            category=category, page=next_page))
 
     # -- actions: maintenance / diagnostics -------------------------------
     def action_test_connection(self):
@@ -537,6 +640,7 @@ class Router(object):
         Point a skin widget at, e.g.:
             plugin://plugin.video.cumnation/?action=widget&type=favorites
             plugin://plugin.video.cumnation/?action=widget&type=history
+            plugin://plugin.video.cumnation/?action=widget&type=continue
             plugin://plugin.video.cumnation/?action=widget&type=category&category=<id>
         """
         wtype = self.args.get('type', '')
@@ -544,8 +648,11 @@ class Router(object):
             videos = favorites.all_favorites()
         elif wtype == 'history':
             videos = history.watched()
+        elif wtype == 'continue':
+            videos = [v for v in history.watched() if resume.get(v.id) > 0]
         elif wtype == 'category':
-            videos = self.source.list_videos(self.args.get('category', ''), 1).items
+            videos = self._filter_rating(
+                self.source.list_videos(self.args.get('category', ''), 1).items)
         else:
             videos = []
         for video in videos:

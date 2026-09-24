@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.cumnation"
        name="Cumnation"
-       version="1.1.6"
+       version="1.2.0"
        provider-name="KodiCum">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
@@ -20,7 +20,16 @@
             <icon>resources/media/icon.png</icon>
             <fanart>resources/media/fanart.jpg</fanart>
         </assets>
-        <news>v1.1.6 - Fixed the Settings -> Base API URL field, which was
+        <news>v1.2.0 - Continue Watching: a root-menu row (and
+?action=widget&amp;type=continue for skins) listing anything you started but
+did not finish, backed by the existing watch history + resume points.
+Auto-play next: an opt-in setting (off by default) that, when a video in a
+category listing finishes, automatically plays the next item in that
+category (or the next page's first item). Sort and filter: category
+listings gained a "Sort by..." entry (title / rating / release date /
+duration) plus native Kodi duration sorting, and a "Minimum rating" setting
+that hides videos below a threshold across categories, search and widgets.
+v1.1.6 - Fixed the Settings -> Base API URL field, which was
 silently disconnected from every request (any source you typed there
 was ignored; only a source added via the multi-source manager ever
 worked). Fixed the Switch source menu item crashing on every use.

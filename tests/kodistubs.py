@@ -19,6 +19,8 @@ class _Addon(object):
             'base_url_static': 'false',
             'user_agent': 'Mozilla/5.0 (Kodi) Cumnation/1.0',
             'resume_playback': 'true',
+            'autoplay_next': 'false',
+            'min_rating': '0',
             'track_history': 'true',
             'history_size': '50',
             'quality': '0',

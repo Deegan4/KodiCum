@@ -20,6 +20,7 @@ class ResumePlayer(xbmc.Player):
         self._last_position = 0.0
         self._total = 0.0
         self._stopped = False
+        self._ended = False
 
     def run(self):
         """Block until playback ends, sampling position roughly once a second."""
@@ -42,11 +43,17 @@ class ResumePlayer(xbmc.Player):
 
         self._persist()
 
+    @property
+    def ended(self):
+        """Whether playback ran to completion, as opposed to being stopped early."""
+        return self._ended
+
     def _persist(self):
         if self._last_position > 0:
-            resume.set(self.video_id, self._last_position, self._total)
-            kodiutils.log('Saved resume point {0:.0f}s for {1}'.format(
-                self._last_position, self.video_id))
+            if resume.enabled():
+                resume.set(self.video_id, self._last_position, self._total)
+                kodiutils.log('Saved resume point {0:.0f}s for {1}'.format(
+                    self._last_position, self.video_id))
             if trakt.enabled() and self.video:
                 if self._last_position >= self._total * 0.95:
                     trakt.scrobble_complete(self.video)
@@ -58,3 +65,4 @@ class ResumePlayer(xbmc.Player):
 
     def onPlayBackEnded(self):
         self._stopped = True
+        self._ended = True

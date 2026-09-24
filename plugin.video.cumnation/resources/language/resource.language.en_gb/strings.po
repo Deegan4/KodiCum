@@ -90,6 +90,18 @@ msgctxt "#32029"
 msgid "Now playing"
 msgstr ""
 
+msgctxt "#32188"
+msgid "Continue Watching"
+msgstr ""
+
+msgctxt "#32189"
+msgid "Videos you've started but not finished"
+msgstr ""
+
+msgctxt "#32193"
+msgid "Nothing to continue watching"
+msgstr ""
+
 # --- Context menu ------------------------------------------------------
 msgctxt "#32030"
 msgid "Add to favorites"
@@ -134,6 +146,35 @@ msgstr ""
 
 msgctxt "#32046"
 msgid "Cache cleared"
+msgstr ""
+
+# --- Sorting -------------------------------------------------------------
+msgctxt "#32180"
+msgid "Sort by..."
+msgstr ""
+
+msgctxt "#32181"
+msgid "Default order"
+msgstr ""
+
+msgctxt "#32182"
+msgid "Title"
+msgstr ""
+
+msgctxt "#32183"
+msgid "Rating"
+msgstr ""
+
+msgctxt "#32184"
+msgid "Release date"
+msgstr ""
+
+msgctxt "#32185"
+msgid "Duration"
+msgstr ""
+
+msgctxt "#32194"
+msgid "Playing next: {0}"
 msgstr ""
 
 # --- Network devices (DLNA) --------------------------------------------
@@ -271,6 +312,14 @@ msgstr ""
 
 msgctxt "#32114"
 msgid "Keep a list of recently watched items"
+msgstr ""
+
+msgctxt "#32191"
+msgid "Auto-play next"
+msgstr ""
+
+msgctxt "#32192"
+msgid "When a video finishes, automatically play the next one in its category"
 msgstr ""
 
 # --- Settings: Trakt ---------------------------------------------------
@@ -438,4 +487,17 @@ msgstr ""
 
 msgctxt "#32174"
 msgid "Enable for a plain file host (e.g. GitHub Pages) that cannot run a real API: requests are made as {base}/categories.json, {base}/list/{category}/{page}.json and {base}/resolve/{id}.json instead of query strings, and search is unavailable"
+msgstr ""
+
+# --- Settings: browsing -------------------------------------------------
+msgctxt "#32190"
+msgid "Browsing"
+msgstr ""
+
+msgctxt "#32186"
+msgid "Minimum rating"
+msgstr ""
+
+msgctxt "#32187"
+msgid "Hide videos rated below this. 0 shows everything."
 msgstr ""

@@ -87,6 +87,16 @@ def refresh_container():
     xbmc.executebuiltin('Container.Refresh')
 
 
+def navigate(url):
+    """Replace the current container with the listing at ``url``."""
+    xbmc.executebuiltin('Container.Update({0}, replace)'.format(url))
+
+
+def play_media(url):
+    """Start playback of a plugin url as a fresh player request."""
+    xbmc.executebuiltin('PlayMedia({0})'.format(url))
+
+
 def kodi_major():
     """Return Kodi's major version number (e.g. 19, 20, 21)."""
     try:

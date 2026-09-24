@@ -1,3 +1,18 @@
+v1.2.0 (2026-09-24)
+- Added: Continue Watching -- a root-menu entry (and a
+  ?action=widget&type=continue skin widget) listing videos you started but
+  have not finished, built from existing watch history + resume points.
+  No new storage: it's the intersection of the two.
+- Added: Auto-play next (opt-in "autoplay_next" setting, off by default).
+  When a video played from a category listing finishes naturally, the next
+  item in that category (or the first item of the next page) plays
+  automatically, with a short notification naming it.
+- Added: "Sort by..." on category listings (Title / Rating / Release date /
+  Duration), plus native Kodi duration sorting alongside the existing
+  title/date/rating sort methods.
+- Added: "Minimum rating" setting (Browsing category, 0-10, default 0) that
+  hides videos below the threshold in categories, search results and the
+  "category" skin widget.
 v1.1.6 (2026-09-23)
 - Fixed: the Settings -> Base API URL field was silently disconnected
   from ContentSource, which only ever read the (always-empty-by-default)
